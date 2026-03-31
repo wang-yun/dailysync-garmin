@@ -60,6 +60,7 @@ export const getGaminGlobalClient = async (): Promise<GarminClientType> => {
     } catch (err) {
         console.error(err);
         core.setFailed(err);
+        return Promise.reject(err);
     }
 };
 
@@ -69,7 +70,20 @@ export const migrateGarminGlobal2GarminCN = async (count = 200) => {
     const totalAct = Number(GARMIN_MIGRATE_NUM) ?? count;
 
     const clientGlobal = await getGaminGlobalClient();
+    if (!clientGlobal) {
+        const errMsg = 'Failed to initialize Global client';
+        console.error(errMsg);
+        core.setFailed(errMsg);
+        return Promise.reject(errMsg);
+    }
+
     const clientCn = await getGaminCNClient();
+    if (!clientCn) {
+        const errMsg = 'Failed to initialize CN client';
+        console.error(errMsg);
+        core.setFailed(errMsg);
+        return Promise.reject(errMsg);
+    }
 
     // 从佳明国际区读取活动数据
     const actSlices = await clientGlobal.getActivities(actIndex, totalAct);
@@ -91,7 +105,20 @@ export const migrateGarminGlobal2GarminCN = async (count = 200) => {
 
 export const syncGarminGlobal2GarminCN = async () => {
     const clientCN = await getGaminCNClient();
+    if (!clientCN) {
+        const errMsg = 'Failed to initialize CN client';
+        console.error(errMsg);
+        core.setFailed(errMsg);
+        return Promise.reject(errMsg);
+    }
+
     const clientGlobal = await getGaminGlobalClient();
+    if (!clientGlobal) {
+        const errMsg = 'Failed to initialize Global client';
+        console.error(errMsg);
+        core.setFailed(errMsg);
+        return Promise.reject(errMsg);
+    }
 
     const cnActs = await clientCN.getActivities(0, 1);
     let globalActs = await clientGlobal.getActivities(0, Number(GARMIN_SYNC_NUM));
