@@ -7,17 +7,20 @@ import {
     GARMIN_USERNAME_DEFAULT,
     GARMIN_SYNC_NUM_DEFAULT
 } from '../constant';
-import { downloadGarminActivity, uploadGarminActivity } from './garmin_common';
+import { downloadGarminActivity, getGarminWellnessData, mapActivityFromGarmin, uploadGarminActivity } from './garmin_common';
 import { GarminClientType } from './type';
 import { number2capital } from './number_tricks';
 const core = require('@actions/core');
 import _ from 'lodash';
 import { getSessionFromDB, initDB, saveSessionToDB, updateSessionToDB } from './sqlite';
+import { GoogleSheetsService } from '../services/GoogleSheetsService';
 
 const CryptoJS = require('crypto-js');
 const fs = require('fs');
 
 const { GarminConnect } = require('@gooin/garmin-connect');
+
+const GOOGLE_SHEETS_ENABLED = process.env.GOOGLE_SHEETS_ENABLED === 'true';
 
 const GARMIN_USERNAME = process.env.GARMIN_USERNAME ?? GARMIN_USERNAME_DEFAULT;
 const GARMIN_PASSWORD = process.env.GARMIN_PASSWORD ?? GARMIN_PASSWORD_DEFAULT;
@@ -99,23 +102,59 @@ export const syncGarminCN2GarminGlobal = async () => {
 
     let cnActs = await clientCN.getActivities(0, Number(GARMIN_SYNC_NUM));
     const globalActs = await clientGlobal.getActivities(0, 1);
-
     const latestGlobalActStartTime = globalActs[0]?.startTimeLocal ?? '0';
     const latestCnActStartTime = cnActs[0]?.startTimeLocal ?? '0';
+
+    let sheetsService: GoogleSheetsService | null = null;
+    if (GOOGLE_SHEETS_ENABLED) {
+        try {
+            sheetsService = new GoogleSheetsService();
+            await sheetsService.initializeSheets();
+            console.log('Google Sheets initialized.');
+        } catch (e) {
+            console.error('Failed to initialize Google Sheets:', e.message);
+        }
+    }
+
+    // 同步健康数据到 Google Sheets
+    if (sheetsService) {
+        const today = new Date();
+        const wellnessData = await getGarminWellnessData(clientCN, today);
+        const hasExistingWellness = await sheetsService.hasWellnessDataForDate(wellnessData.date);
+        if (!hasExistingWellness && Object.keys(wellnessData).length > 1) {
+            await sheetsService.appendData(wellnessData);
+            console.log(`健康数据已同步到 Google Sheets: ${wellnessData.date}`);
+        } else if (hasExistingWellness) {
+            console.log(`健康数据已存在，跳过: ${wellnessData.date}`);
+        } else {
+            console.log(`健康数据无内容或获取失败: ${wellnessData.date}`);
+        }
+    }
+
+    // 同步活动数据到 Garmin Global 和 Google Sheets
     if (latestCnActStartTime === latestGlobalActStartTime) {
-        console.log(`没有要同步的活动内容, 最近的活动:  【 ${cnActs[0].activityName} 】, 开始于: 【 ${latestCnActStartTime} 】`);
+        console.log(`没有要同步的活动内容, 最近的活动: 【 ${cnActs[0]?.activityName} 】, 开始于: 【 ${latestCnActStartTime} 】`);
     } else {
-        // fix: #18
         _.reverse(cnActs);
         let actualNewActivityCount = 1;
         for (let i = 0; i < cnActs.length; i++) {
             const cnAct = cnActs[i];
             if (cnAct.startTimeLocal > latestGlobalActStartTime) {
-                // 下载佳明原始数据
                 const filePath = await downloadGarminActivity(cnAct.activityId, clientCN);
-                // 上传到佳明国际区
                 console.log(`本次开始向国际区上传第 ${number2capital(actualNewActivityCount)} 条数据，【 ${cnAct.activityName} 】，开始于 【 ${cnAct.startTimeLocal} 】，活动ID: 【 ${cnAct.activityId} 】`);
                 await uploadGarminActivity(filePath, clientGlobal);
+
+                if (sheetsService) {
+                    const activityMetrics = mapActivityFromGarmin(cnAct);
+                    const hasExisting = await sheetsService.hasActivityData(String(cnAct.activityId));
+                    if (!hasExisting) {
+                        await sheetsService.appendActivityData(activityMetrics);
+                        console.log(`活动数据已同步到 Google Sheets: ${cnAct.activityId}`);
+                    } else {
+                        console.log(`活动已存在，跳过: ${cnAct.activityId}`);
+                    }
+                }
+
                 await new Promise(resolve => setTimeout(resolve, 1000));
                 actualNewActivityCount++;
             }

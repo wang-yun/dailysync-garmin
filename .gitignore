@@ -4,6 +4,12 @@ node_modules
 garmin_fit_files
 ./src/constant.my.ts
 
+# Environment and credentials
+.env
+.env.*
+credentials.json
+service-account-key.json
+
 # Virtual environment
 bin/
 include/
