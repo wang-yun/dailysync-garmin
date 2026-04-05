@@ -247,7 +247,7 @@ export class GoogleSheetsService {
     }
 
     /**
-     * Insert wellness metrics at row 2 (after header) - newest first
+     * Append wellness metrics to the Wellness_Daily sheet (at the end)
      */
     async appendData(data: WellnessMetrics | WellnessMetrics[]): Promise<sheets_v4.Schema$AppendValuesResponse> {
         const metricsArray = Array.isArray(data) ? data : [data];
@@ -277,15 +277,19 @@ export class GoogleSheetsService {
             m.trainingReadiness ?? '',
         ]);
 
-        // Insert row at position 2 and write data
-        const response = await this.insertDataAtRow2('Wellness_Daily', values, 23);
+        const response = await this.sheets.spreadsheets.values.append({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Wellness_Daily!A1:W1',
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values },
+        });
 
-        console.log('Inserted wellness metrics at row 2:', values);
-        return response;
+        console.log('Appended wellness metrics:', values);
+        return response.data;
     }
 
     /**
-     * Insert activity metrics at row 2 (after header) - newest first
+     * Append activity metrics to the Activities_Log sheet (at the end)
      */
     async appendActivityData(data: ActivityMetrics | ActivityMetrics[]): Promise<sheets_v4.Schema$AppendValuesResponse> {
         const metricsArray = Array.isArray(data) ? data : [data];
@@ -313,112 +317,46 @@ export class GoogleSheetsService {
             m.vo2Max ?? '',
         ]);
 
-        // Insert row at position 2 and write data
-        const response = await this.insertDataAtRow2('Activities_Log', values, 21);
-
-        console.log('Inserted activity metrics at row 2:', values);
-        return response;
-    }
-
-    /**
-     * Insert data at row 2, shifting existing data down
-     */
-    private async insertDataAtRow2(sheetName: string, values: any[][], columnCount: number): Promise<any> {
-        const columnLetter = this.getColumnLetter(columnCount);
-
-        // First, insert a new row at position 2
-        await this.sheets.spreadsheets.values.batchUpdate({
+        const response = await this.sheets.spreadsheets.values.append({
             spreadsheetId: this.spreadsheetId,
-            requestBody: {
-                requests: [
-                    {
-                        insertDimension: {
-                            range: {
-                                sheetName: sheetName,
-                                dimension: 'ROWS',
-                                startIndex: 1,
-                                endIndex: 2
-                            }
-                        }
-                    }
-                ]
-            }
-        });
-
-        // Then write data to row 2
-        const range = `${sheetName}!A2:${columnLetter}2`;
-        const response = await this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: range,
+            range: 'Activities_Log!A1:U1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values },
         });
 
+        console.log('Appended activity metrics:', values);
         return response.data;
     }
 
     /**
-     * Get column letter from number (e.g., 23 -> W, 26 -> Z)
+     * Get the latest row data from a specific sheet
      */
-    private getColumnLetter(columnCount: number): string {
-        let letter = '';
-        while (columnCount > 0) {
-            const mod = (columnCount - 1) % 26;
-            letter = String.fromCharCode(65 + mod) + letter;
-            columnCount = Math.floor((columnCount - 1) / 26);
-        }
-        return letter;
-    }
-
-    /**
-     * Get the first data row (row 2, after header) from a specific sheet
-     */
-    async getFirstDataRow(sheetName: string, columnCount: number = 23): Promise<string[] | null> {
-        const columnLetter = this.getColumnLetter(columnCount);
+    async getLatestRow(sheetName: string, columnCount: string = 'W'): Promise<string[] | null> {
         const response = await this.sheets.spreadsheets.values.get({
             spreadsheetId: this.spreadsheetId,
-            range: `${sheetName}!A2:${columnLetter}2`,
+            range: `${sheetName}!A1:${columnCount}`,
         });
 
         const rows = response.data.values;
         if (!rows || rows.length === 0) return null;
-        return rows[0];
-    }
-
-    /**
-     * Get total rows count in a sheet (including header)
-     */
-    async getRowCount(sheetName: string): Promise<number> {
-        const response = await this.sheets.spreadsheets.values.get({
-            spreadsheetId: this.spreadsheetId,
-            range: `${sheetName}!A:A`,
-        });
-        return response.data.values?.length ?? 0;
+        return rows[rows.length - 1];
     }
 
     /**
      * Check if wellness data for the given date already exists
-     * Now checks row 2 (first data row) since newest is at top
      */
     async hasWellnessDataForDate(date: string): Promise<boolean> {
-        const rowCount = await this.getRowCount('Wellness_Daily');
-        if (rowCount < 2) return false; // Only header exists
-
-        const firstRow = await this.getFirstDataRow('Wellness_Daily', 23);
-        if (!firstRow) return false;
-        return firstRow[0] === date;
+        const lastRow = await this.getLatestRow('Wellness_Daily', 'W');
+        if (!lastRow) return false;
+        return lastRow[0] === date;
     }
 
     /**
      * Check if activity data for the given activity ID already exists
-     * Now checks row 2 (first data row) since newest is at top
      */
     async hasActivityData(activityId: string): Promise<boolean> {
-        const rowCount = await this.getRowCount('Activities_Log');
-        if (rowCount < 2) return false; // Only header exists
-
-        const firstRow = await this.getFirstDataRow('Activities_Log', 21);
-        if (!firstRow) return false;
-        return firstRow[0] === activityId;
+        const lastRow = await this.getLatestRow('Activities_Log', 'U');
+        if (!lastRow) return false;
+        return lastRow[0] === activityId;
     }
 }
