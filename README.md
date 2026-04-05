@@ -1,7 +1,5 @@
 # 佳明运动数据同步与采集工具
 
-
-
 ![workflow](./assets/workflow.png)
 
 <a style="display:inline-block;background-color:#FC5200;color:#fff;padding:5px 10px 5px 30px;font-size:11px;font-family:Helvetica, Arial, sans-serif;white-space:nowrap;text-decoration:none;background-repeat:no-repeat;background-position:10px center;border-radius:3px;background-image:url('https://badges.strava.com/logo-strava-echelon.png')" href='https://strava.com/athletes/84396978' target="_clean">
@@ -9,282 +7,306 @@
   <img src='https://badges.strava.com/logo-strava.png' alt='Strava' style='margin-left:2px;vertical-align:text-bottom' height=13 width=51 />
 </a>
 
-
-
 [![](https://img.shields.io/badge/-Telegram-%2326A5E4?style=flat-square&logo=telegram&logoColor=ffffff)](https://t.me/garmindailysync)
 
+## 功能特性
+
+### 1. 数据迁移
+- 支持佳明账号中已有的运动数据从中国区一次性迁移到国际区
+- 支持佳明账号中已有的运动数据从国际区一次性迁移到中国区
+- 支持将活动数据或健康数据迁移到 Google Sheets
+
+### 2. 日常同步
+- 约每20分钟检查中国区账号中是否有新的运动数据，自动下载上传到国际区并同步到 Strava
+- 自动反向同步：国际区 → 中国区（适用于需要同步到国内运动软件的用户）
+- 微信步数同步（iOS 用户通过佳明爱运动小程序绑定）
+
+### 3. Google Sheets 数据同步
+每次同步时，自动将以下数据写入 Google Sheets：
+
+#### 健康数据（Wellness_Daily 工作表）
+| 字段 | 说明 |
+|------|------|
+| Date | 日期时间（北京时间，YYYY-MM-DD HH:mm:ss） |
+| Sleep_Score | 睡眠分数（0-100） |
+| Sleep_Duration_Total | 总睡眠时长（分钟） |
+| Deep_Sleep_Duration | 深睡时长（分钟） |
+| REM_Sleep_Duration | REM 时长（分钟） |
+| Light_Sleep_Duration | 浅睡时长（分钟） |
+| Awake_Duration | 清醒时长（分钟） |
+| HRV_LastNight_Avg | 昨晚平均 HRV（ms） |
+| HRV_Status_Weekly | HRV 七天状态（BALANCED/UNBALANCED） |
+| RHR | 静息心率（bpm） |
+| Body_Battery_High | 身体电量最高值 |
+| Body_Battery_Low | 身体电量最低值 |
+| Stress_Avg | 全天平均压力分数 |
+| Stress_Duration_High | 高压时长（分钟） |
+| Min_SpO2 | 昨晚最低血氧（%） |
+| Avg_SpO2 | 昨晚平均血氧（%） |
+| Avg_Respiration | 平均呼吸频率（brpm） |
+| Intensity_Minutes | 强度分钟数 |
+
+#### 活动数据（Activities_Log 工作表）
+| 字段 | 说明 |
+|------|------|
+| Activity_ID | 佳明原始活动 ID |
+| Start_Time | 开始时间（YYYY-MM-DD HH:mm） |
+| Type | 运动类型（Running/Badminton 等） |
+| Title | 活动名称 |
+| Distance_KM | 距离（km） |
+| Duration_Total | 总耗时（秒） |
+| Moving_Time | 移动耗时（秒） |
+| Avg_HR | 平均心率 |
+| Max_HR | 最大心率 |
+| Avg_Pace | 平均配速（min/km） |
+| Avg_Cadence | 平均步频（步/分） |
+| Avg_Power | 平均功率（W） |
+| Total_Ascent | 累计爬升（m） |
+| Calories | 消耗卡路里 |
+| VO2_Max | 最大摄氧量 |
+
+### 4. 飞书通知
+同步完成后可发送飞书机器人通知，包含：
+- 同步结果（成功/失败）
+- 同步的数据详情
+- 错误信息（如有）
+
+### 5. 健壮性保障
+- SQLite 本地数据库记录已同步的活动，避免重复同步
+- 支持 Google Sheets 写入失败后的自动重试
+
+---
+
 ## 【2025-12说明】开启了ECG功能的说明
-开通了ECG功能的佳明账号，因为登录佳明时需要提供验证码，开通ECG后，这个验证码无法关闭，github上要中途要输入一次验证码，本同步脚本无法支持，下方的Web版本做了兼容，可以使用。 
+开通了ECG功能的佳明账号，因为登录佳明时需要提供验证码，开通ECG后，这个验证码无法关闭，github上要中途要输入一次验证码，本同步脚本无法支持，下方的Web版本做了兼容，可以使用。
 
 ## Web版本
 如果你不熟悉代码，强烈推荐使用这个版本，在网页上填入账号点击就能同步数据，简洁好用。
 [https://dailysync.vyzt.dev/](https://dailysync.vyzt.dev/)
 
 ## 其他仓库备份
-gitlab: 
+gitlab:
 [https://gitlab.com/gooin/dailysync](https://gitlab.com/gooin/dailysync)
 
 github:（actions方式正常可用）
 [https://github.com/gooin/dailysync-rev](https://github.com/gooin/dailysync-rev)
 
-## Docker版本
-如果你懂一点代码，会使用 docker 可以使用此方案。
+## 环境配置
 
-### 拉取代码
-目前没有提供打包好的镜像，需要拉取下来自行打包使用
+### 网络要求
+确保运行此脚本的机器能够访问国际互联网（如国外 VPS、家庭全局科学的环境等），否则无法正常登录佳明国际区。
+
+#### 测试网络连通性
 ```shell
-git clone https://gitlab.com/gooin/dailysync.git
-```
-### 修改配置文件
-打开`.env`文件，按注释填入信息
-
-### 修改docker-compsoe.yml 文件
-
-可以通过修改文件中的`command`参数决定每次执行的功能，默认是国区同步到国际区
-
-```shell
-yarn sync_cn
-```
-同步国际区到中国区
-```shell
-yarn sync_global
-```
-迁移历史数据：中国区到国际区
-```shell
-yarn migrate_garmin_cn_to_global
-```
-迁移历史数据：国际区到中国区
-```shell
-yarn migrate_garmin_global_to_cn
-```
-
-### 打包运行一次项目
-```shell
-docker-compose up
-```
-
-### 配置系统定时任务
-参照下文中的 `定时任务(Linux Only)`，把命令替换成使用
-```shell
-docker start daily-sync
-```
-## Github运行方案
-因为项目之前在Github上占用过多资源被封禁，现在已经调整了执行的频率，熟悉代码的话，将代码下载下来，上传到github，通过 github Actions执行
-具体参考下方文档或参考视频教程: https://www.bilibili.com/video/BV1v94y1Q7oR/?spm_id_from=333.999.0.0
-
-## 使用前账号准备与配置
-
-【重要重要重要！！！】请先参照 [账号准备](https://dailysync.vyzt.dev/docs/%E8%B4%A6%E5%8F%B7%E5%87%86%E5%A4%87) 进行账号配置，再来使用此工具
-
-## 本地运行方案
-首先确保运行此脚本的机器能够访问国际互联网, 如国外VPS、家庭全局科学的环境等， 否则无法正常登录佳明国际区
-
-## 检查网络情况确保正常访问佳明服务
-
-### 测试国际互联网网络连通性
-```shell
+# 测试 Google
 wget google.com
-```
-执行后确保相应的数据类似如下再进行下面步骤，否则请检查网络环境（命令行也需要能访问国际互联网, 如果google在浏览器能正常访问，但是命令行无法ping通，google搜索关键词**命令行翻墙**，参考配置一下重试。） 如果用的时Clash，在左侧 General 下，将 TUN Mode 模式开启也可。
-```shell
-root@home:~# wget google.com
 
-StatusCode        : 200
-StatusDescription : OK
-Content           : <!doctype html><html itemscope="" itemtype="http://schema.org/WebPage" lang="zh-HK"><head><meta con
-                    tent="text/html; charset=UTF-8" http-equiv="Content-Type"><meta content="/images/branding/googleg/1
-                    x/...
-RawContent        : HTTP/1.1 200 OK
-                    Connection: close
-                    Conts...
-Forms             : {f}
-Headers           : {[ https://csp.withgoogle.com/csp/gws/other-hp], [Cache-Control, private, max
-                    -age=0], [Content-Type, text/html; charset=UTF-8]...}
-Images            : {@{innerHTML=; n value=zh-HK name=hl>; outerText=; tagName=I
-                    NPUT; th}...}
-Links             : {@{i id=gb_78; class=gbzt;
-                     href=https://play.google.com/?hl=zh-TW&amp;tab=w8}...}
-ParsedHtml        : mshtml.HTMLDocumentClass
-RawContentLength  : 52716
-```    
-如果是如下显示则代表网络没有配置好，请先按上面说的方法解决再试。
-```shell
-root@home:~# wget google.com
-
---2023-07-06 20:26:18--  http://google.com/
-Resolving google.com (google.com)... 142.251.42.238
-Connecting to google.com (google.com)|142.251.42.238|:80... failed: Connection timed out.
-Retrying.
-```
-### 测试佳明国际区网络连通性
-```shell
+# 测试佳明国际区
 ping sso.garmin.com
-```
-```shell
-root@home:~# ping sso.garmin.com
-PING sso.garmin.com.cdn.cloudflare.net (104.17.113.66) 56(84) bytes of data.
-64 bytes from 104.17.113.66 (104.17.113.66): icmp_seq=1 ttl=63 time=1.92 ms
-64 bytes from 104.17.113.66 (104.17.113.66): icmp_seq=2 ttl=63 time=1.27 ms
-64 bytes from 104.17.113.66 (104.17.113.66): icmp_seq=3 ttl=63 time=2.43 ms
 
---- sso.garmin.com.cdn.cloudflare.net ping statistics ---
-
-```
-### 测试中国区网络连通性
-```shell
+# 测试佳明中国区
 ping sso.garmin.cn
 ```
-```shell
-root@home:~# ping sso.garmin.cn
-PING sso.garmin.cn (61.150.74.194) 56(84) bytes of data.
-64 bytes from 61.150.74.194: icmp_seq=1 ttl=63 time=1.69 ms
-64 bytes from 61.150.74.194: icmp_seq=2 ttl=63 time=2.77 ms
-64 bytes from 61.150.74.194: icmp_seq=3 ttl=63 time=7.12 ms
 
---- sso.garmin.cn ping statistics ---
-
-```
-
-
-### 安装 `NodeJS`
-环境需求Node版本`18`及以上，推荐最新的LTS版本。
+### 安装 NodeJS
+环境需求 Node 版本 `18` 及以上，推荐最新的 LTS 版本。
 下载地址 [https://nodejs.org/en/](https://nodejs.org/en/)
-### 开启 `yarn` 
-
-`NodeJS` 安装完毕后，新打开一个管理员命令行窗口， 输入命令执行
-
-```shell
-corepack enable
-```
 
 ### 安装依赖
-在`README.md`同级目录打开命令行，执行
-
-Windows在文件管理器中打开脚本所在的目录，在地址栏输入 `cmd` 然后回车，即可打开命令行，这个步骤不需要管理员权限
-
 ```shell
 yarn
 ```
-### 填入账号密码
-打开 `src/constant.ts`,
-填入您的佳明账号及密码
-```js
-//中国区
-export const GARMIN_USERNAME_DEFAULT = 'example@example.com';
-export const GARMIN_PASSWORD_DEFAULT = 'password';
-//国际区
-export const GARMIN_GLOBAL_USERNAME_DEFAULT = 'example@example.com';
-export const GARMIN_GLOBAL_PASSWORD_DEFAULT = 'password';
 
-// 佳明迁移数量配置（批量同步历史数据使用）
-export const GARMIN_MIGRATE_NUM_DEFAULT = 100; //每次要迁移的数量，不要填太大
-export const GARMIN_MIGRATE_START_DEFAULT = 0; // 从第几条活动开始
+---
 
-```
+## 配置说明
 
-### 运行脚本
-注意： 如果执行不能成功，请尝试将梯子更换为美国IP，多更换几个ip试试
+### 1. 环境变量配置（.env 文件）
 
-同步中国区到国际区
+创建 `.env` 文件，复制以下内容并填写：
+
 ```shell
-yarn sync_cn
+# ============ Garmin 账号配置 ============
+# 中国区账号
+GARMIN_CN_USERNAME=your_cn_email@example.com
+GARMIN_CN_PASSWORD=your_cn_password
+
+# 国际区账号
+GARMIN_GLOBAL_USERNAME=your_global_email@example.com
+GARMIN_GLOBAL_PASSWORD=your_global_password
+
+# ============ Google Sheets 配置 ============
+# 启用 Google Sheets 同步（true=启用，false=禁用）
+GOOGLE_SHEETS_ENABLED=false
+
+# Google Sheets 电子表格 ID（从 URL 中获取）
+# 例如：https://docs.google.com/spreadsheets/d/【这里就是ID】/edit
+GOOGLE_SHEET_ID=your_spreadsheet_id
+
+# Google Service Account 认证（JSON 格式，从 Google Cloud Console 获取）
+GOOGLE_API_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
+GOOGLE_API_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# ============ Feishu 飞书通知配置 ============
+# 启用飞书通知（true=启用，false=禁用）
+FEISHU_NOTIFICATION_ENABLED=false
+
+# 飞书机器人应用凭证
+FEISHU_APP_ID=cli_xxxxxxxxxxxxxxxxx
+FEISHU_APP_SECRET=your_app_secret
+
+# 消息接收者（用户的 open_id 或群组的 chat_id）
+FEISHU_BOT_USER_ID=ou_xxxxxxxxxxxxxxxxx
+
+# ============ 其他配置 ============
+# 每次同步要迁移的活动数量（建议不要太大）
+GARMIN_MIGRATE_NUM=100
+
+# 是否启用 Garmin Global 同步（true=启用，false=禁用）
+GARMIN_GLOBAL_SYNC_ENABLED=false
 ```
-同步国际区到中国区
+
+### 2. Google Sheets 配置
+
+#### 创建 Service Account
+1. 访问 [Google Cloud Console](https://console.cloud.google.com/)
+2. 创建新项目或选择现有项目
+3. 启用 Google Sheets API
+4. 创建 Service Account
+5. 生成 JSON 密钥文件，复制 `credentials.json` 内容到环境变量
+
+#### 创建电子表格
+1. 创建新的 Google Sheets 电子表格
+2. 共享给 Service Account 邮箱（`GOOGLE_API_CLIENT_EMAIL`）
+3. 从 URL 中提取 Spreadsheet ID
+
+#### 工作表结构
+程序会自动创建以下工作表（如果不存在）：
+- **Wellness_Daily** - 健康数据
+- **Activities_Log** - 活动数据
+
+### 3. Feishu 飞书配置
+
+#### 创建飞书机器人应用
+1. 访问 [飞书开放平台](https://open.feishu.cn/app)
+2. 创建企业自建应用
+3. 添加「机器人」能力
+4. 获取 App ID 和 App Secret
+5. 配置消息接收者的 open_id
+
+#### 获取用户 open_id
+1. 在飞书中打开与机器人的对话
+2. 开发者工具 → Network → 搜索任意消息 → 查看请求头中的 `open_id`
+
+---
+
+## 使用方法
+
+### 运行同步（推荐方式）
+
 ```shell
-yarn sync_global
+# 同步中国区数据到国际区 + Google Sheets + 飞书通知
+yarn sync
+
+# 仅测试 Google Sheets 功能
+yarn test:sheets
 ```
-迁移历史数据：中国区到国际区
+
+### 数据迁移
+
 ```shell
-yarn migrate_garmin_cn_to_global
+# 迁移活动数据（中国区 → Google Sheets）
+yarn migrate_garmin_cn_to_sheets
+
+# 迁移健康数据（中国区 → Google Sheets）
+yarn migrate_wellness
 ```
-迁移历史数据：国际区到中国区
+
+### Docker 部署
+
 ```shell
-yarn migrate_garmin_global_to_cn
+# 修改 .env 文件后运行
+docker-compose up
 ```
 
-#### 常见问题
+---
 
-如果上面ping都正常，却仍然不能正常运行，请尝试将梯子更换为美国IP
+## 定时任务（Linux）
 
-## 定时任务(Linux Only)
-上面手动执行名称成功迁移后，可以添加定时任务来自动执行
+### 使用 tsx 运行（推荐，避免内存问题）
 
-`crontab -e` 打开定时任务编辑，按需添加： 
-
-### 每3小时检查并同步国际区到中国区【可选】,注意PATH和SHELL两行也要写上
-```cron
-PATH=$PATH:/usr/local/bin:/usr/bin
-SHELL=/bin/bash
-0 */3 * * * cd /root/code/dailysync/ && yarn --cwd /root/code/dailysync/ sync_global >> /var/log/dailysync.log 2>&1
+```shell
+# 每 12 小时执行一次同步
+0 */12 * * * cd /path/to/dailysync-garmin && tsx src/sync_garmin_cn_to_global.ts >> /var/log/dailysync.log 2>&1
 ```
-### 每3小时检查并同步中国区到国际区【可选】,注意PATH和SHELL两行也要写上
-```cron
-PATH=$PATH:/usr/local/bin:/usr/bin
-SHELL=/bin/bash
-0 */3 * * * cd /root/code/dailysync/ && yarn --cwd /root/code/dailysync/ sync_cn >> /var/log/dailysync.log 2>&1
-```
-其中 `/root/code/dailysync/`为脚本在机器上的目录地址，更换为您机器上的目录即可
 
-![](./assets/crontab-e.png)
-
-### 运行日志查看
+### 查看日志
 
 ```shell
 tail -100f /var/log/dailysync.log
 ```
 
-### 修改定时任务执行频率
-当前为 `*/10 * * * *` 每 10 分钟执行一次
+### logrotate 配置（可选）
 
-您可以按需修改， 参考网址 [https://crontab.guru/examples.html](https://crontab.guru/examples.html)
+创建 `/etc/logrotate.d/dailysync`：
 
-列举几个常用的：
+```
+/var/log/dailysync.log {
+    daily
+    rotate 7
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 644 root root
+}
+```
 
-每小时执行一次： `0 * * * *`
+---
 
-每6小时执行一次： `0 */6 * * *`
+## GitHub Actions 部署
 
-每12小时执行一次： `0 */12 * * *`
+熟悉代码的话，将代码下载下来，上传到 GitHub，通过 GitHub Actions 执行。
 
+参考视频教程: https://www.bilibili.com/video/BV1v94y1Q7oR/?spm_id_from=333.999.0.0
 
-------------
+### 在 GitHub Secrets 中配置以下变量
+- `GARMIN_CN_USERNAME` / `GARMIN_CN_PASSWORD`
+- `GARMIN_GLOBAL_USERNAME` / `GARMIN_GLOBAL_PASSWORD`
+- `GOOGLE_SHEET_ID`
+- `GOOGLE_API_CLIENT_EMAIL`
+- `GOOGLE_API_PRIVATE_KEY`（注意将换行替换为 `\n`）
+- `FEISHU_APP_ID` / `FEISHU_APP_SECRET`
+- `FEISHU_BOT_USER_ID`
 
+---
 
-**自动 安全 省心**
+## 常见问题
 
-**如果看不到此文档的图片，请移步 [知乎链接](https://zhuanlan.zhihu.com/p/543799435)**
+### 1. 网络问题
+如果 ping 都正常，但无法正常运行，请尝试将梯子更换为美国 IP。
 
-此工具实现了佳明运动活动数据（生理数据如睡眠，身体电量，**步数**
-等除外）的一次性迁移与日常运动数据同步，实现同步运动数据到到Strava [Strava全球热图](https://www.strava.com/heatmap) 。 额外还实现了RQ数据采集记录跑力的长期趋势及自动签到。
+### 2. 内存溢出（Node.js heap out of memory）
+```shell
+# 使用 tsx 替代 ts-node
+NODE_OPTIONS="--max-old-space-size=4096" tsx src/sync_garmin_cn_to_global.ts
+```
 
-## 功能
+### 3. Google Sheets 写入失败
+确保已正确配置 Service Account 并共享电子表格。
 
-### 迁移数据
+### 4. Feishu 通知发送失败
+检查 `FEISHU_BOT_USER_ID` 是否为当前机器人应用下的 open_id。
 
-- 支持佳明账号中已有的运动数据从中国区一次性迁移到国际区。对应 `Action`: `Migrate Garmin CN to Garmin Global`
-- 支持佳明账号中已有的运动数据从国际区一次性迁移到中国区。对应 `Action`: `Migrate Garmin Global to Garmin CN`
+---
 
-### 同步数据
-
-- 约每20分钟左右检查当前中国区账号中是否有新的运动数据，如有则自动下载上传到国际区，并同步到Strava。 对应 `Action`: `Sync Garmin CN to Garmin Global`
-- 如果您常用的是国际区，想要在国内运动软件（悦跑圈/咕咚/keep/郁金香等等）同步运动数据及微信运动中显示 【Garmin手表 骑行xx分钟】（[微信运动效果](./assets/wx_sport.jpg)）
-  此工具可以实现自动反向同步中国区。 对应 `Action`: `Sync Garmin Global to Garmin CN`
-  - 微信步数同步：
-    - `iOS`: 佳明爱运动小程序绑定后，国际区->中国区同步仅能同步活动数据。出去运动不带手机的话，步数会记录在手表中，活动同步后，`Connect`会将步数上传到`健康` App 中，微信与健康应用链接，即可在微信运动中看到步数。
-    - `Android`: 暂无可行方法。
-- 如无特殊需求，强烈建议不要将两个同步脚本同时打开，按需开启一个即可！ 
-
-## 说明
-
-#### 免责声明：
+## 免责声明
 
 本工具仅限用于学习和研究使用，不得用于商业或者非法用途。如有任何问题可联系本人删除。
 
-#### 账号安全：
+账号及密码保存在自己的 `.env` 文件或 GitHub Secrets 中，不会泄露。运行代码均为**开放源码**，欢迎提交 `PR`。
 
-账号及密码保存在自己的 `github secrets` 中，不会泄露，运行代码均 **开放源码**，欢迎提交`PR`。
+## 进群讨论
 
-#### 进群讨论
-
-为方便讨论，请加我绿色软件：nononopass （下面扫码）我拉你进群。`nononopass`  我拉你进群。
+为方便讨论，请加我绿色软件：nononopass （下面扫码）我拉你进群。
 ![二维码扫码](./assets/wechat_qr.png)
