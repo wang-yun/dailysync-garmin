@@ -11,6 +11,7 @@ const GOOGLE_SERVICE_ACCOUNT_KEY_PATH = process.env.GOOGLE_SERVICE_ACCOUNT_KEY_P
 
 export interface WellnessMetrics {
     date: string;                      // 日期 (YYYY-MM-DD)
+    timestamp?: string;                // 数据插入时间 (YYYY-MM-DD HH:mm:ss)
     sleepScore?: number;              // 睡眠分数 (0-100)
     sleepDurationTotal?: number;      // 总睡眠时长 (min)
     deepSleepDuration?: number;       // 深睡时长 (min)
@@ -177,6 +178,7 @@ export class GoogleSheetsService {
     private async writeWellnessHeaders(): Promise<void> {
         const headers = [
             'Date',
+            'Timestamp',
             'Sleep_Score',
             'Sleep_Duration_Total',
             'Deep_Sleep_Duration',
@@ -203,7 +205,7 @@ export class GoogleSheetsService {
 
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: 'Wellness_Daily!A1:W1',
+            range: 'Wellness_Daily!A1:X1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [headers] },
         });
@@ -238,7 +240,7 @@ export class GoogleSheetsService {
 
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A1:U1',
+            range: 'Activities_Log!A1:V1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [headers] },
         });
@@ -253,6 +255,7 @@ export class GoogleSheetsService {
         const metricsArray = Array.isArray(data) ? data : [data];
         const values = metricsArray.map(m => [
             m.date,
+            m.timestamp ?? '',
             m.sleepScore ?? '',
             m.sleepDurationTotal ?? '',
             m.deepSleepDuration ?? '',
@@ -279,7 +282,7 @@ export class GoogleSheetsService {
 
         const response = await this.sheets.spreadsheets.values.append({
             spreadsheetId: this.spreadsheetId,
-            range: 'Wellness_Daily!A1:W1',
+            range: 'Wellness_Daily!A1:X1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values },
         });
@@ -319,7 +322,7 @@ export class GoogleSheetsService {
 
         const response = await this.sheets.spreadsheets.values.append({
             spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A1:U1',
+            range: 'Activities_Log!A1:V1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values },
         });

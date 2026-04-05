@@ -170,6 +170,32 @@ export const getGarminWellnessData = async (client: GarminClientType, date: Date
         const sleepStress = sleepDataResult.sleepStress || [];
         const sleepBodyBattery = sleepDataResult.sleepBodyBattery || [];
 
+        // Fetch Intensity Minutes from daily/im endpoint
+        let intensityMinutes = 0;
+        try {
+            const intensityUrl = `${baseApiUrl}/wellness-service/wellness/daily/im/${dateString}`;
+            const intensityData: any = await internalClient.get(intensityUrl);
+            if (intensityData) {
+                intensityMinutes = (intensityData.moderateMinutes || 0) + (intensityData.vigorousMinutes || 0);
+            }
+        } catch (e) {
+            console.log('Could not fetch intensity data:', e instanceof Error ? e.message : 'Unknown error');
+        }
+
+        // Fetch Pulse Ox from daily/spo2acclimation endpoint
+        let avgSpO2: number | undefined;
+        let minSpO2: number | undefined;
+        try {
+            const spo2Url = `${baseApiUrl}/wellness-service/wellness/daily/spo2acclimation/${dateString}`;
+            const spo2Data: any = await internalClient.get(spo2Url);
+            if (spo2Data) {
+                avgSpO2 = spo2Data.averageSpO2;
+                minSpO2 = spo2Data.lowestSpO2;
+            }
+        } catch (e) {
+            console.log('Could not fetch Pulse Ox data:', e instanceof Error ? e.message : 'Unknown error');
+        }
+
         // Calculate sleep duration in minutes
         const sleepDurationTotal = dailySleep.sleepTimeSeconds ? Math.round(dailySleep.sleepTimeSeconds / 60) : undefined;
 
@@ -192,16 +218,10 @@ export const getGarminWellnessData = async (client: GarminClientType, date: Date
             stressDurationHigh = sleepStress.filter((e: any) => e.value > 50).length;
         }
 
-        // Calculate intensity minutes from sleep movement
-        let intensityMinutes = 0;
-        if (sleepMovement && sleepMovement.length > 0) {
-            // Moderate: 3-6 MET, Vigorous: > 6 MET (approximate)
-            intensityMinutes = sleepMovement.filter((e: any) => e.value >= 3).length;
-        }
-
         // Build the wellness metrics object
         const result: WellnessMetrics = {
             date: dateString,
+            timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
             // Sleep metrics
             sleepScore: sleepScores.value ?? dailySleep.sleepScore,
             sleepDurationTotal,
@@ -220,12 +240,12 @@ export const getGarminWellnessData = async (client: GarminClientType, date: Date
             // Stress
             stressAvg,
             stressDurationHigh,
-            // SpO2
-            minSpO2: dailySleep.lowestSpO2Value,
-            avgSpO2: dailySleep.averageSpO2Value,
+            // SpO2 (from daily/spo2acclimation endpoint)
+            minSpO2: minSpO2 ?? sleepDataResult.wellnessSpO2SleepSummaryDTO?.lowestSPO2 ?? dailySleep.lowestSpO2Value,
+            avgSpO2: avgSpO2 ?? sleepDataResult.wellnessSpO2SleepSummaryDTO?.averageSPO2 ?? dailySleep.averageSpO2Value,
             // Respiration
             avgRespiration: dailySleep.averageRespirationValue,
-            // Activity metrics (these come from activity data, not wellness)
+            // Activity metrics (from /daily/im endpoint)
             activeCalories: undefined,
             restingCalories: undefined,
             steps: undefined,
