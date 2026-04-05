@@ -221,7 +221,7 @@ export const getGarminWellnessData = async (client: GarminClientType, date: Date
         // Build the wellness metrics object
         const result: WellnessMetrics = {
             date: dateString,
-            timestamp: new Date().toISOString().replace('T', ' ').substring(0, 19),
+            timestamp: new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' }).replace(/\//g, '-'),
             // Sleep metrics
             sleepScore: sleepScores.value ?? dailySleep.sleepScore,
             sleepDurationTotal,
