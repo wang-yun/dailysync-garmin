@@ -12,7 +12,7 @@ import { GarminClientType } from './type';
 import { number2capital } from './number_tricks';
 const core = require('@actions/core');
 import _ from 'lodash';
-import { getSessionFromDB, initDB, saveSessionToDB, updateSessionToDB } from './sqlite';
+import { getSessionFromDB, initDB, saveSessionToDB, updateSessionToDB, isActivitySynced, markActivitySynced } from './sqlite';
 import { GoogleSheetsService } from '../services/GoogleSheetsService';
 
 const CryptoJS = require('crypto-js');
@@ -158,22 +158,36 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
             for (let i = 0; i < cnActs.length; i++) {
                 const cnAct = cnActs[i];
                 if (cnAct.startTimeLocal > latestGlobalActStartTime) {
+                    const activityIdStr = String(cnAct.activityId);
+
+                    // Check local DB first (for resilience - if Google Sheets write failed before)
+                    const alreadySyncedLocally = await isActivitySynced(activityIdStr);
+
+                    if (alreadySyncedLocally) {
+                        console.log(`活动已在本地记录中，跳过: ${cnAct.activityId}`);
+                        activitySkipped++;
+                        continue;
+                    }
+
                     const filePath = await downloadGarminActivity(cnAct.activityId, clientCN);
                     console.log(`本次开始向国际区上传第 ${number2capital(actualNewActivityCount)} 条数据，【 ${cnAct.activityName} 】，开始于 【 ${cnAct.startTimeLocal} 】，活动ID: 【 ${cnAct.activityId} 】`);
                     await uploadGarminActivity(filePath, clientGlobal);
 
                     if (sheetsService) {
                         const activityMetrics = mapActivityFromGarmin(cnAct);
-                        const hasExisting = await sheetsService.hasActivityData(String(cnAct.activityId));
+                        const hasExisting = await sheetsService.hasActivityData(activityIdStr);
                         if (!hasExisting) {
                             await sheetsService.appendActivityData(activityMetrics);
                             console.log(`活动数据已同步到 Google Sheets: ${cnAct.activityId}`);
                             activitySynced++;
                         } else {
-                            console.log(`活动已存在，跳过: ${cnAct.activityId}`);
+                            console.log(`活动已在 Google Sheets 中，跳过: ${cnAct.activityId}`);
                             activitySkipped++;
                         }
                     }
+
+                    // Mark as synced in local DB
+                    await markActivitySynced(activityIdStr);
 
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     actualNewActivityCount++;

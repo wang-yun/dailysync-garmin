@@ -15,6 +15,13 @@ export const initDB = async () => {
             region VARCHAR(20),
             session  TEXT
         )`);
+
+    // Table to track synced activities (for resilience)
+    await db.exec(`CREATE TABLE IF NOT EXISTS synced_activities (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            activity_id VARCHAR(50) UNIQUE,
+            synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`);
 };
 
 export const getDB = async () => {
@@ -56,6 +63,25 @@ export const getSessionFromDB = async (type: 'CN' | 'GLOBAL'): Promise<Record<st
     const encryptedSessionStr = queryResult?.session;
     // return {}
     return decryptSession(encryptedSessionStr);
+};
+
+// Check if activity has been synced to Google Sheets
+export const isActivitySynced = async (activityId: string): Promise<boolean> => {
+    const db = await getDB();
+    const result = await db.get(
+        'SELECT id FROM synced_activities WHERE activity_id = ?',
+        activityId
+    );
+    return !!result;
+};
+
+// Mark activity as synced to Google Sheets
+export const markActivitySynced = async (activityId: string): Promise<void> => {
+    const db = await getDB();
+    await db.run(
+        'INSERT OR IGNORE INTO synced_activities (activity_id) VALUES (?)',
+        activityId
+    );
 };
 
 export const encryptSession = (session: Record<string, any>): string => {
