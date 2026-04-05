@@ -96,68 +96,102 @@ export const migrateGarminCN2GarminGlobal = async (count = 200) => {
     }
 };
 
-export const syncGarminCN2GarminGlobal = async () => {
-    const clientCN = await getGaminCNClient();
-    const clientGlobal = await getGaminGlobalClient();
+export interface SyncGarminResult {
+    success: boolean;
+    wellnessDate?: string;
+    wellnessSkipped?: boolean;
+    activitySynced?: number;
+    activitySkipped?: number;
+    error?: string;
+}
 
-    let cnActs = await clientCN.getActivities(0, Number(GARMIN_SYNC_NUM));
-    const globalActs = await clientGlobal.getActivities(0, 1);
-    const latestGlobalActStartTime = globalActs[0]?.startTimeLocal ?? '0';
-    const latestCnActStartTime = cnActs[0]?.startTimeLocal ?? '0';
+export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => {
+    try {
+        const clientCN = await getGaminCNClient();
+        const clientGlobal = await getGaminGlobalClient();
 
-    let sheetsService: GoogleSheetsService | null = null;
-    if (GOOGLE_SHEETS_ENABLED) {
-        try {
-            sheetsService = new GoogleSheetsService();
-            await sheetsService.initializeSheets();
-            console.log('Google Sheets initialized.');
-        } catch (e) {
-            console.error('Failed to initialize Google Sheets:', e.message);
-        }
-    }
+        let cnActs = await clientCN.getActivities(0, Number(GARMIN_SYNC_NUM));
+        const globalActs = await clientGlobal.getActivities(0, 1);
+        const latestGlobalActStartTime = globalActs[0]?.startTimeLocal ?? '0';
+        const latestCnActStartTime = cnActs[0]?.startTimeLocal ?? '0';
 
-    // 同步健康数据到 Google Sheets
-    if (sheetsService) {
-        const today = new Date();
-        const wellnessData = await getGarminWellnessData(clientCN, today);
-        const hasExistingWellness = await sheetsService.hasWellnessDataForDate(wellnessData.date);
-        if (!hasExistingWellness && Object.keys(wellnessData).length > 1) {
-            await sheetsService.appendData(wellnessData);
-            console.log(`健康数据已同步到 Google Sheets: ${wellnessData.date}`);
-        } else if (hasExistingWellness) {
-            console.log(`健康数据已存在，跳过: ${wellnessData.date}`);
-        } else {
-            console.log(`健康数据无内容或获取失败: ${wellnessData.date}`);
-        }
-    }
-
-    // 同步活动数据到 Garmin Global 和 Google Sheets
-    if (latestCnActStartTime === latestGlobalActStartTime) {
-        console.log(`没有要同步的活动内容, 最近的活动: 【 ${cnActs[0]?.activityName} 】, 开始于: 【 ${latestCnActStartTime} 】`);
-    } else {
-        _.reverse(cnActs);
-        let actualNewActivityCount = 1;
-        for (let i = 0; i < cnActs.length; i++) {
-            const cnAct = cnActs[i];
-            if (cnAct.startTimeLocal > latestGlobalActStartTime) {
-                const filePath = await downloadGarminActivity(cnAct.activityId, clientCN);
-                console.log(`本次开始向国际区上传第 ${number2capital(actualNewActivityCount)} 条数据，【 ${cnAct.activityName} 】，开始于 【 ${cnAct.startTimeLocal} 】，活动ID: 【 ${cnAct.activityId} 】`);
-                await uploadGarminActivity(filePath, clientGlobal);
-
-                if (sheetsService) {
-                    const activityMetrics = mapActivityFromGarmin(cnAct);
-                    const hasExisting = await sheetsService.hasActivityData(String(cnAct.activityId));
-                    if (!hasExisting) {
-                        await sheetsService.appendActivityData(activityMetrics);
-                        console.log(`活动数据已同步到 Google Sheets: ${cnAct.activityId}`);
-                    } else {
-                        console.log(`活动已存在，跳过: ${cnAct.activityId}`);
-                    }
-                }
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                actualNewActivityCount++;
+        let sheetsService: GoogleSheetsService | null = null;
+        if (GOOGLE_SHEETS_ENABLED) {
+            try {
+                sheetsService = new GoogleSheetsService();
+                await sheetsService.initializeSheets();
+                console.log('Google Sheets initialized.');
+            } catch (e) {
+                console.error('Failed to initialize Google Sheets:', e.message);
             }
         }
+
+        let wellnessSkipped = false;
+        let wellnessDate = '';
+
+        // 同步健康数据到 Google Sheets
+        if (sheetsService) {
+            const today = new Date();
+            const wellnessData = await getGarminWellnessData(clientCN, today);
+            wellnessDate = wellnessData.date;
+            const hasExistingWellness = await sheetsService.hasWellnessDataForDate(wellnessData.date);
+            if (!hasExistingWellness && Object.keys(wellnessData).length > 1) {
+                await sheetsService.appendData(wellnessData);
+                console.log(`健康数据已同步到 Google Sheets: ${wellnessData.date}`);
+            } else if (hasExistingWellness) {
+                console.log(`健康数据已存在，跳过: ${wellnessData.date}`);
+                wellnessSkipped = true;
+            } else {
+                console.log(`健康数据无内容或获取失败: ${wellnessData.date}`);
+            }
+        }
+
+        let activitySynced = 0;
+        let activitySkipped = 0;
+
+        // 同步活动数据到 Garmin Global 和 Google Sheets
+        if (latestCnActStartTime === latestGlobalActStartTime) {
+            console.log(`没有要同步的活动内容, 最近的活动: 【 ${cnActs[0]?.activityName} 】, 开始于: 【 ${latestCnActStartTime} 】`);
+        } else {
+            _.reverse(cnActs);
+            let actualNewActivityCount = 1;
+            for (let i = 0; i < cnActs.length; i++) {
+                const cnAct = cnActs[i];
+                if (cnAct.startTimeLocal > latestGlobalActStartTime) {
+                    const filePath = await downloadGarminActivity(cnAct.activityId, clientCN);
+                    console.log(`本次开始向国际区上传第 ${number2capital(actualNewActivityCount)} 条数据，【 ${cnAct.activityName} 】，开始于 【 ${cnAct.startTimeLocal} 】，活动ID: 【 ${cnAct.activityId} 】`);
+                    await uploadGarminActivity(filePath, clientGlobal);
+
+                    if (sheetsService) {
+                        const activityMetrics = mapActivityFromGarmin(cnAct);
+                        const hasExisting = await sheetsService.hasActivityData(String(cnAct.activityId));
+                        if (!hasExisting) {
+                            await sheetsService.appendActivityData(activityMetrics);
+                            console.log(`活动数据已同步到 Google Sheets: ${cnAct.activityId}`);
+                            activitySynced++;
+                        } else {
+                            console.log(`活动已存在，跳过: ${cnAct.activityId}`);
+                            activitySkipped++;
+                        }
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    actualNewActivityCount++;
+                }
+            }
+        }
+
+        return {
+            success: true,
+            wellnessDate,
+            wellnessSkipped,
+            activitySynced,
+            activitySkipped
+        };
+    } catch (e: any) {
+        return {
+            success: false,
+            error: e.message
+        };
     }
 };
