@@ -1,6 +1,61 @@
 import axios from 'axios';
 
-const FEISHU_WEBHOOK = process.env.FEISHU_WEBHOOK;
+const FEISHU_APP_ID = process.env.FEISHU_APP_ID;
+const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET;
+const FEISHU_BOT_USER_ID = process.env.FEISHU_BOT_USER_ID;
+
+interface FeishuTokenResponse {
+    code: number;
+    msg: string;
+    tenant_access_token?: string;
+}
+
+interface FeishuSendResponse {
+    code: number;
+    msg: string;
+}
+
+let cachedToken: { token: string; expireTime: number } | null = null;
+
+/**
+ * Get Feishu tenant access token
+ */
+const getAccessToken = async (): Promise<string | null> => {
+    // Check cache
+    if (cachedToken && Date.now() < cachedToken.expireTime) {
+        return cachedToken.token;
+    }
+
+    if (!FEISHU_APP_ID || !FEISHU_APP_SECRET) {
+        console.log('Feishu APP_ID or APP_SECRET not configured');
+        return null;
+    }
+
+    try {
+        const response = await axios.post<FeishuTokenResponse>(
+            'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal',
+            {
+                app_id: FEISHU_APP_ID,
+                app_secret: FEISHU_APP_SECRET
+            }
+        );
+
+        if (response.data.code === 0 && response.data.tenant_access_token) {
+            // Cache token (expire 30 minutes before actual expiry)
+            cachedToken = {
+                token: response.data.tenant_access_token,
+                expireTime: Date.now() + 110 * 60 * 1000 // 110 minutes
+            };
+            return cachedToken.token;
+        } else {
+            console.error('Failed to get Feishu token:', response.data.msg);
+            return null;
+        }
+    } catch (e: any) {
+        console.error('Feishu token request failed:', e.message);
+        return null;
+    }
+};
 
 export interface SyncResult {
     success: boolean;
@@ -18,11 +73,11 @@ export interface SyncResult {
 }
 
 /**
- * Send sync result notification to Feishu
+ * Send sync result notification to Feishu Bot
  */
 export const sendFeishuNotification = async (result: SyncResult): Promise<void> => {
-    if (!FEISHU_WEBHOOK) {
-        console.log('FEISHU_WEBHOOK not configured, skipping notification');
+    if (!FEISHU_APP_ID || !FEISHU_APP_SECRET) {
+        console.log('Feishu not configured, skipping notification');
         return;
     }
 
@@ -54,16 +109,45 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
         message += `错误: ${error || '未知错误'}`;
     }
 
-    // Send to Feishu
+    // Get access token
+    const token = await getAccessToken();
+    if (!token) {
+        console.error('Cannot send Feishu notification: no token');
+        return;
+    }
+
+    // Send message to user or bot
     try {
-        await axios.post(FEISHU_WEBHOOK, {
+        const payload: any = {
             msg_type: 'text',
             content: {
                 text: message
             }
+        };
+
+        // If user ID is configured, send to user; otherwise just to bot
+        if (FEISHU_BOT_USER_ID) {
+            payload.receive_id = FEISHU_BOT_USER_ID;
+            payload.receive_id_type = 'open_id';
+        }
+
+        const url = FEISHU_BOT_USER_ID
+            ? 'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id'
+            : 'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id';
+
+        const response = await axios.post<FeishuSendResponse>(url, payload, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
         });
-        console.log('Feishu notification sent');
+
+        if (response.data.code === 0) {
+            console.log('Feishu notification sent successfully');
+        } else {
+            console.error('Failed to send Feishu notification:', response.data.msg);
+        }
     } catch (e: any) {
-        console.error('Failed to send Feishu notification:', e.message);
+        console.error('Feishu notification error:', e.message);
     }
 };
