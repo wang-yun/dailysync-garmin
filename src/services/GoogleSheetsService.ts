@@ -375,7 +375,7 @@ export class GoogleSheetsService {
     }
 
     /**
-     * Update wellness data for a given date (replace existing row or insert new)
+     * Update wellness data for a given date (insert new row at top, keep old data)
      */
     async updateWellnessData(data: WellnessMetrics): Promise<void> {
         const date = data.date;
@@ -409,21 +409,11 @@ export class GoogleSheetsService {
         ]];
 
         if (rowNum > 0) {
-            // Delete existing row and insert new data at row 2
+            // Insert new row at row 2, push existing data down
             await this.sheets.spreadsheets.batchUpdate({
                 spreadsheetId: this.spreadsheetId,
                 requestBody: {
                     requests: [
-                        {
-                            deleteDimension: {
-                                range: {
-                                    sheetId: await this.getSheetId('Wellness_Daily'),
-                                    dimension: 'ROWS',
-                                    startIndex: rowNum - 1,
-                                    endIndex: rowNum,
-                                },
-                            },
-                        },
                         {
                             insertDimension: {
                                 range: {
