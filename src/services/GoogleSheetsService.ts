@@ -178,7 +178,6 @@ export class GoogleSheetsService {
     private async writeWellnessHeaders(): Promise<void> {
         const headers = [
             'Date',
-            'Timestamp',
             'Sleep_Score',
             'Sleep_Duration_Total',
             'Deep_Sleep_Duration',
@@ -205,7 +204,7 @@ export class GoogleSheetsService {
 
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: 'Wellness_Daily!A1:X1',
+            range: 'Wellness_Daily!A1:W1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [headers] },
         });
@@ -254,8 +253,7 @@ export class GoogleSheetsService {
     async appendData(data: WellnessMetrics | WellnessMetrics[]): Promise<sheets_v4.Schema$AppendValuesResponse> {
         const metricsArray = Array.isArray(data) ? data : [data];
         const values = metricsArray.map(m => [
-            m.date,
-            m.timestamp ?? '',
+            m.timestamp ?? m.date,
             m.sleepScore ?? '',
             m.sleepDurationTotal ?? '',
             m.deepSleepDuration ?? '',
@@ -282,7 +280,7 @@ export class GoogleSheetsService {
 
         const response = await this.sheets.spreadsheets.values.append({
             spreadsheetId: this.spreadsheetId,
-            range: 'Wellness_Daily!A1:X1',
+            range: 'Wellness_Daily!A1:W1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values },
         });
@@ -349,13 +347,13 @@ export class GoogleSheetsService {
      * Check if wellness data for the given date already exists
      */
     async hasWellnessDataForDate(date: string): Promise<boolean> {
-        const lastRow = await this.getLatestRow('Wellness_Daily', 'W');
-        if (!lastRow) return false;
-        return lastRow[0] === date;
+        const rowNum = await this.findWellnessRowByDate(date);
+        return rowNum > 0;
     }
 
     /**
      * Find the row number for a given date in Wellness_Daily (returns 0 if not found)
+     * Since column A now contains timestamp (YYYY-MM-DD HH:mm:ss), we check if timestamp starts with date
      */
     async findWellnessRowByDate(date: string): Promise<number> {
         const response = await this.sheets.spreadsheets.values.get({
@@ -367,7 +365,8 @@ export class GoogleSheetsService {
         if (!rows || rows.length === 0) return 0;
 
         for (let i = 1; i < rows.length; i++) {
-            if (rows[i][0] === date) {
+            const timestamp = rows[i][0] || '';
+            if (timestamp.startsWith(date)) {
                 return i + 1; // 1-indexed row number
             }
         }
@@ -382,8 +381,7 @@ export class GoogleSheetsService {
         const rowNum = await this.findWellnessRowByDate(date);
 
         const values = [[
-            data.date,
-            data.timestamp ?? '',
+            data.timestamp ?? data.date,
             data.sleepScore ?? '',
             data.sleepDurationTotal ?? '',
             data.deepSleepDuration ?? '',
@@ -431,7 +429,7 @@ export class GoogleSheetsService {
             // Write new data at row 2
             await this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.spreadsheetId,
-                range: 'Wellness_Daily!A2:X2',
+                range: 'Wellness_Daily!A2:W2',
                 valueInputOption: 'USER_ENTERED',
                 requestBody: { values },
             });
