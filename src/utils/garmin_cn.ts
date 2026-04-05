@@ -129,18 +129,14 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
         let wellnessSkipped = false;
         let wellnessDate = '';
 
-        // 同步健康数据到 Google Sheets
+        // 同步健康数据到 Google Sheets (每次都更新)
         if (sheetsService) {
             const today = new Date();
             const wellnessData = await getGarminWellnessData(clientCN, today);
             wellnessDate = wellnessData.date;
-            const hasExistingWellness = await sheetsService.hasWellnessDataForDate(wellnessData.date);
-            if (!hasExistingWellness && Object.keys(wellnessData).length > 1) {
-                await sheetsService.appendData(wellnessData);
+            if (Object.keys(wellnessData).length > 1) {
+                await sheetsService.updateWellnessData(wellnessData);
                 console.log(`健康数据已同步到 Google Sheets: ${wellnessData.date}`);
-            } else if (hasExistingWellness) {
-                console.log(`健康数据已存在，跳过: ${wellnessData.date}`);
-                wellnessSkipped = true;
             } else {
                 console.log(`健康数据无内容或获取失败: ${wellnessData.date}`);
             }

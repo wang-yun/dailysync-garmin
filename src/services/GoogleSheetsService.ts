@@ -355,6 +355,118 @@ export class GoogleSheetsService {
     }
 
     /**
+     * Find the row number for a given date in Wellness_Daily (returns 0 if not found)
+     */
+    async findWellnessRowByDate(date: string): Promise<number> {
+        const response = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Wellness_Daily!A:A',
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) return 0;
+
+        for (let i = 1; i < rows.length; i++) {
+            if (rows[i][0] === date) {
+                return i + 1; // 1-indexed row number
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Update wellness data for a given date (replace existing row or insert new)
+     */
+    async updateWellnessData(data: WellnessMetrics): Promise<void> {
+        const date = data.date;
+        const rowNum = await this.findWellnessRowByDate(date);
+
+        const values = [[
+            data.date,
+            data.timestamp ?? '',
+            data.sleepScore ?? '',
+            data.sleepDurationTotal ?? '',
+            data.deepSleepDuration ?? '',
+            data.remSleepDuration ?? '',
+            data.lightSleepDuration ?? '',
+            data.awakeDuration ?? '',
+            data.hrvLastNightAvg ?? '',
+            data.hrvStatusWeekly ?? '',
+            data.rhr ?? '',
+            data.bodyBatteryHigh ?? '',
+            data.bodyBatteryLow ?? '',
+            data.stressAvg ?? '',
+            data.stressDurationHigh ?? '',
+            data.minSpO2 ?? '',
+            data.avgSpO2 ?? '',
+            data.avgRespiration ?? '',
+            data.activeCalories ?? '',
+            data.restingCalories ?? '',
+            data.steps ?? '',
+            data.intensityMinutes ?? '',
+            data.floorsClimbed ?? '',
+            data.trainingReadiness ?? '',
+        ]];
+
+        if (rowNum > 0) {
+            // Delete existing row and insert new data at row 2
+            await this.sheets.spreadsheets.batchUpdate({
+                spreadsheetId: this.spreadsheetId,
+                requestBody: {
+                    requests: [
+                        {
+                            deleteDimension: {
+                                range: {
+                                    sheetId: await this.getSheetId('Wellness_Daily'),
+                                    dimension: 'ROWS',
+                                    startIndex: rowNum - 1,
+                                    endIndex: rowNum,
+                                },
+                            },
+                        },
+                        {
+                            insertDimension: {
+                                range: {
+                                    sheetId: await this.getSheetId('Wellness_Daily'),
+                                    dimension: 'ROWS',
+                                    startIndex: 1,
+                                    endIndex: 2,
+                                },
+                            },
+                        },
+                    ],
+                },
+            });
+
+            // Write new data at row 2
+            await this.sheets.spreadsheets.values.update({
+                spreadsheetId: this.spreadsheetId,
+                range: 'Wellness_Daily!A2:X2',
+                valueInputOption: 'USER_ENTERED',
+                requestBody: { values },
+            });
+
+            console.log(`Updated wellness data for ${date} at row ${rowNum}`);
+        } else {
+            // No existing data, just append
+            await this.appendData(data);
+            console.log(`Appended new wellness data for ${date}`);
+        }
+    }
+
+    /**
+     * Get sheet ID by name
+     */
+    async getSheetId(sheetName: string): Promise<number> {
+        const spreadsheet = await this.sheets.spreadsheets.get({
+            spreadsheetId: this.spreadsheetId,
+        });
+
+        const sheet = spreadsheet.data.sheets?.find(s => s.properties?.title === sheetName);
+        return sheet?.properties?.sheetId ?? 0;
+    }
+
+    /**
      * Check if activity data for the given activity ID already exists
      */
     async hasActivityData(activityId: string): Promise<boolean> {
