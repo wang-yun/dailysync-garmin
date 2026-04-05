@@ -3,6 +3,7 @@ import axios from 'axios';
 const FEISHU_APP_ID = process.env.FEISHU_APP_ID;
 const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET;
 const FEISHU_BOT_USER_ID = process.env.FEISHU_BOT_USER_ID;
+const FEISHU_CHAT_ID = process.env.FEISHU_CHAT_ID;
 
 interface FeishuTokenResponse {
     code: number;
@@ -85,7 +86,6 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
 
     // Build message content
     let message = '';
-    let color = success ? 'green' : 'red';
 
     if (success) {
         message = `✅ Garmin 数据同步完成\n\n`;
@@ -116,7 +116,7 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
         return;
     }
 
-    // Send message to user or bot
+    // Send message
     try {
         const payload: any = {
             msg_type: 'text',
@@ -125,15 +125,23 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
             }
         };
 
-        // If user ID is configured, send to user; otherwise just to bot
-        if (FEISHU_BOT_USER_ID) {
-            payload.receive_id = FEISHU_BOT_USER_ID;
-            payload.receive_id_type = 'open_id';
-        }
+        let url: string;
+        let receiveIdType: string;
 
-        const url = FEISHU_BOT_USER_ID
-            ? 'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id'
-            : 'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id';
+        if (FEISHU_BOT_USER_ID) {
+            // Send to user by open_id
+            payload.receive_id = FEISHU_BOT_USER_ID;
+            receiveIdType = 'open_id';
+            url = 'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=open_id';
+        } else if (FEISHU_CHAT_ID) {
+            // Send to chat (group)
+            payload.receive_id = FEISHU_CHAT_ID;
+            receiveIdType = 'chat_id';
+            url = 'https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id';
+        } else {
+            console.log('No receive_id configured (FEISHU_BOT_USER_ID or FEISHU_CHAT_ID)');
+            return;
+        }
 
         const response = await axios.post<FeishuSendResponse>(url, payload, {
             headers: {
@@ -149,5 +157,8 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
         }
     } catch (e: any) {
         console.error('Feishu notification error:', e.message);
+        if (e.response?.data) {
+            console.error('Response:', JSON.stringify(e.response.data));
+        }
     }
 };
