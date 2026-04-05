@@ -120,9 +120,7 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
     try {
         const payload: any = {
             msg_type: 'text',
-            content: {
-                text: message
-            }
+            content: JSON.stringify({ text: message })
         };
 
         let url: string;
