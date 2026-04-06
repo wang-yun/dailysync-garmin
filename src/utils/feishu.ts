@@ -101,15 +101,28 @@ export interface SyncResult {
             startTime: string;
             type: string;
             title?: string;
+            locationName?: string;
             distanceKm?: number;
             durationTotal?: number;
             movingTime?: number;
             avgHr?: number;
             maxHr?: number;
             avgPace?: string;
+            maxSpeed?: number;
             avgCadence?: number;
-            calories?: number;
+            maxCadence?: number;
+            avgPower?: number;
+            avgVerticalOscillation?: number;
+            avgGroundContactTime?: number;
+            avgStrideLength?: number;
             totalAscent?: number;
+            totalDescent?: number;
+            calories?: number;
+            steps?: number;
+            aerobicTe?: number;
+            anaerobicTe?: number;
+            trainingLoad?: number;
+            vo2Max?: number;
         }>;
     };
     error?: string;
@@ -161,12 +174,20 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
             message += `🏃 活动数据 (新增 ${activityData.synced} 条)\n`;
             message += `━━━━━━━━━━━━━━━━━━━━\n`;
             for (const act of activityData.activities) {
-                const dist = act.distanceKm ? ` ${act.distanceKm}km` : '';
+                const dist = act.distanceKm ? ` ${act.distanceKm.toFixed(2)}km` : '';
                 const pace = act.avgPace ? ` 配速${act.avgPace}/km` : '';
                 const hr = act.avgHr ? ` 心率${act.avgHr}` : '';
-                const cal = act.calories ? ` ${act.calories}cal` : '';
+                const maxHr = act.maxHr ? `/${act.maxHr}` : '';
+                const cadence = act.avgCadence ? ` 步频${act.avgCadence}` : '';
+                const power = act.avgPower ? ` 功率${act.avgPower}W` : '';
                 const ascent = act.totalAscent ? ` 爬升${act.totalAscent}m` : '';
-                message += `• ${act.type} ${act.startTime}${dist}${pace}${hr}${cal}${ascent}\n`;
+                const descent = act.totalDescent ? ` 下降${act.totalDescent}m` : '';
+                const cal = act.calories ? ` ${act.calories}cal` : '';
+                const vo2 = act.vo2Max ? ` VO2max${act.vo2Max}` : '';
+                const aerobic = act.aerobicTe ? ` 有氧${act.aerobicTe}` : '';
+                const anaerobic = act.anaerobicTe ? ` 无氧${act.anaerobicTe}` : '';
+                const load = act.trainingLoad ? ` 负荷${act.trainingLoad}` : '';
+                message += `• ${act.type} ${act.startTime}${dist}${pace}${hr}${maxHr}${cadence}${power}${ascent}${descent}${cal}${vo2}${aerobic}${anaerobic}${load}\n`;
             }
             if (activityData.skipped > 0) {
                 message += `跳过 ${activityData.skipped} 条（已存在）\n`;

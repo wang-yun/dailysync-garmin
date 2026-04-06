@@ -47,17 +47,22 @@ export interface ActivityMetrics {
     avgHr?: number;                // 平均心率
     maxHr?: number;                // 最大心率
     avgPace?: string;              // 平均配速 (min/km)
+    maxSpeed?: number;              // 最大速度 (m/s)
     avgCadence?: number;            // 平均步频 (步/分)
+    maxCadence?: number;            // 最大步频
     avgPower?: number;             // 平均功率 (W)
+    avgVerticalOscillation?: number; // 垂直振幅 (cm)
+    avgGroundContactTime?: number;   // 触地时间 (ms)
+    avgStrideLength?: number;       // 步幅 (cm)
     totalAscent?: number;           // 累计爬升 (m)
+    totalDescent?: number;          // 累计下降 (m)
     calories?: number;             // 消耗卡路里
+    steps?: number;                // 步数
     aerobicTe?: number;            // 有氧训练效果 (0-5.0)
     anaerobicTe?: number;          // 无氧训练效果 (0-5.0)
     trainingLoad?: number;         // 训练负荷数值
-    recoveryTime?: number;          // 建议恢复时间 (hrs)
-    avgTemp?: number;               // 平均环境温度
-    gear?: string;                  // 使用装备 (跑鞋/球拍)
-    vo2Max?: number;               // 活动后的最大摄氧量估算
+    vo2Max?: number;               // 最大摄氧量
+    locationName?: string;         // 位置名称
 }
 
 export interface GoogleSheetsServiceConfig {
@@ -218,28 +223,33 @@ export class GoogleSheetsService {
             'Start_Time',
             'Type',
             'Title',
+            'Location',
             'Distance_KM',
             'Duration_Total',
             'Moving_Time',
             'Avg_HR',
             'Max_HR',
             'Avg_Pace',
+            'Max_Speed',
             'Avg_Cadence',
+            'Max_Cadence',
             'Avg_Power',
+            'Avg_Vertical_Oscillation',
+            'Avg_Ground_Contact_Time',
+            'Avg_Stride_Length',
             'Total_Ascent',
+            'Total_Descent',
             'Calories',
+            'Steps',
             'Aerobic_TE',
             'Anaerobic_TE',
             'Training_Load',
-            'Recovery_Time',
-            'Avg_Temp',
-            'Gear',
             'VO2_Max',
         ];
 
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A1:V1',
+            range: 'Activities_Log!A1:Z1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [headers] },
         });
@@ -299,28 +309,33 @@ export class GoogleSheetsService {
             m.startTime,
             m.type,
             m.title ?? '',
+            m.locationName ?? '',
             m.distanceKm ?? '',
             m.durationTotal ?? '',
             m.movingTime ?? '',
             m.avgHr ?? '',
             m.maxHr ?? '',
             m.avgPace ?? '',
+            m.maxSpeed ?? '',
             m.avgCadence ?? '',
+            m.maxCadence ?? '',
             m.avgPower ?? '',
+            m.avgVerticalOscillation ?? '',
+            m.avgGroundContactTime ?? '',
+            m.avgStrideLength ?? '',
             m.totalAscent ?? '',
+            m.totalDescent ?? '',
             m.calories ?? '',
+            m.steps ?? '',
             m.aerobicTe ?? '',
             m.anaerobicTe ?? '',
             m.trainingLoad ?? '',
-            m.recoveryTime ?? '',
-            m.avgTemp ?? '',
-            m.gear ?? '',
             m.vo2Max ?? '',
         ]);
 
         const response = await this.sheets.spreadsheets.values.append({
             spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A1:V1',
+            range: 'Activities_Log!A1:Z1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values },
         });
