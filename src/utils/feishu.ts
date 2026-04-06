@@ -62,13 +62,31 @@ export interface SyncResult {
     success: boolean;
     wellnessData?: {
         date: string;
+        timestamp: string;
         synced: boolean;
         skipped: boolean;
+        metrics?: {
+            sleepScore?: number;
+            hrvLastNightAvg?: number;
+            rhr?: number;
+            bodyBatteryHigh?: number;
+            bodyBatteryLow?: number;
+            stressAvg?: number;
+            avgSpO2?: number;
+            intensityMinutes?: number;
+        };
     };
     activityData?: {
         count: number;
         synced: number;
         skipped: number;
+        activities?: Array<{
+            type: string;
+            title?: string;
+            startTime: string;
+            distanceKm?: number;
+            calories?: number;
+        }>;
     };
     error?: string;
 }
@@ -90,19 +108,33 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
     if (success) {
         message = `✅ Garmin 数据同步完成\n\n`;
 
-        if (wellnessData) {
-            if (wellnessData.skipped) {
-                message += `📊 健康数据: 已存在，跳过 (${wellnessData.date})\n`;
-            } else if (wellnessData.synced) {
-                message += `📊 健康数据: 同步成功 (${wellnessData.date})\n`;
+        if (wellnessData && wellnessData.metrics) {
+            const w = wellnessData.metrics;
+            message += `📊 健康数据 (${wellnessData.timestamp})\n`;
+            if (w.sleepScore !== undefined) message += `  睡眠分数: ${w.sleepScore}\n`;
+            if (w.hrvLastNightAvg !== undefined) message += `  HRV: ${w.hrvLastNightAvg}ms\n`;
+            if (w.rhr !== undefined) message += `  静息心率: ${w.rhr}bpm\n`;
+            if (w.bodyBatteryHigh !== undefined && w.bodyBatteryLow !== undefined) {
+                message += `  身体电量: ${w.bodyBatteryLow}→${w.bodyBatteryHigh}\n`;
             }
+            if (w.stressAvg !== undefined) message += `  平均压力: ${w.stressAvg}\n`;
+            if (w.avgSpO2 !== undefined) message += `  血氧: ${w.avgSpO2}%\n`;
+            if (w.intensityMinutes !== undefined) message += `  强度分钟: ${w.intensityMinutes}\n`;
+            message += `\n`;
         }
 
-        if (activityData) {
-            message += `🏃 活动数据: 新增 ${activityData.synced} 条\n`;
-            if (activityData.skipped > 0) {
-                message += `   跳过 ${activityData.skipped} 条（已存在）\n`;
+        if (activityData && activityData.activities && activityData.activities.length > 0) {
+            message += `🏃 活动数据 (新增 ${activityData.synced} 条)\n`;
+            for (const act of activityData.activities) {
+                const dist = act.distanceKm ? ` ${act.distanceKm}km` : '';
+                const cal = act.calories ? ` ${act.calories}cal` : '';
+                message += `  • ${act.type}${dist}${cal}\n`;
             }
+            if (activityData.skipped > 0) {
+                message += `  跳过 ${activityData.skipped} 条（已存在）\n`;
+            }
+        } else if (activityData && activityData.synced === 0) {
+            message += `🏃 活动数据: 无新增\n`;
         }
     } else {
         message = `❌ Garmin 数据同步失败\n\n`;

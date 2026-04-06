@@ -100,6 +100,25 @@ export interface SyncGarminResult {
     success: boolean;
     wellnessDate?: string;
     wellnessSkipped?: boolean;
+    wellnessMetrics?: {
+        date: string;
+        timestamp: string;
+        sleepScore?: number;
+        hrvLastNightAvg?: number;
+        rhr?: number;
+        bodyBatteryHigh?: number;
+        bodyBatteryLow?: number;
+        stressAvg?: number;
+        avgSpO2?: number;
+        intensityMinutes?: number;
+    };
+    activityMetrics?: Array<{
+        type: string;
+        title?: string;
+        startTime: string;
+        distanceKm?: number;
+        calories?: number;
+    }>;
     activitySynced?: number;
     activitySkipped?: number;
     error?: string;
@@ -128,6 +147,7 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
 
         let wellnessSkipped = false;
         let wellnessDate = '';
+        let wellnessMetrics: SyncGarminResult['wellnessMetrics'];
 
         // 同步健康数据到 Google Sheets (每次都更新)
         if (sheetsService) {
@@ -137,6 +157,18 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
             if (Object.keys(wellnessData).length > 1) {
                 await sheetsService.updateWellnessData(wellnessData);
                 console.log(`健康数据已同步到 Google Sheets: ${wellnessData.date}`);
+                wellnessMetrics = {
+                    date: wellnessData.date,
+                    timestamp: wellnessData.timestamp || '',
+                    sleepScore: wellnessData.sleepScore,
+                    hrvLastNightAvg: wellnessData.hrvLastNightAvg,
+                    rhr: wellnessData.rhr,
+                    bodyBatteryHigh: wellnessData.bodyBatteryHigh,
+                    bodyBatteryLow: wellnessData.bodyBatteryLow,
+                    stressAvg: wellnessData.stressAvg,
+                    avgSpO2: wellnessData.avgSpO2,
+                    intensityMinutes: wellnessData.intensityMinutes,
+                };
             } else {
                 console.log(`健康数据无内容或获取失败: ${wellnessData.date}`);
             }
@@ -144,6 +176,7 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
 
         let activitySynced = 0;
         let activitySkipped = 0;
+        let activityMetrics: SyncGarminResult['activityMetrics'] = [];
 
         // 同步活动数据到 Garmin Global 和 Google Sheets
         if (latestCnActStartTime === latestGlobalActStartTime) {
@@ -170,12 +203,19 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
                     await uploadGarminActivity(filePath, clientGlobal);
 
                     if (sheetsService) {
-                        const activityMetrics = mapActivityFromGarmin(cnAct);
+                        const actMetrics = mapActivityFromGarmin(cnAct);
                         const hasExisting = await sheetsService.hasActivityData(activityIdStr);
                         if (!hasExisting) {
-                            await sheetsService.appendActivityData(activityMetrics);
+                            await sheetsService.appendActivityData(actMetrics);
                             console.log(`活动数据已同步到 Google Sheets: ${cnAct.activityId}`);
                             activitySynced++;
+                            activityMetrics.push({
+                                type: actMetrics.type,
+                                title: actMetrics.title,
+                                startTime: actMetrics.startTime,
+                                distanceKm: actMetrics.distanceKm,
+                                calories: actMetrics.calories,
+                            });
                         } else {
                             console.log(`活动已在 Google Sheets 中，跳过: ${cnAct.activityId}`);
                             activitySkipped++;
@@ -195,6 +235,8 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
             success: true,
             wellnessDate,
             wellnessSkipped,
+            wellnessMetrics,
+            activityMetrics,
             activitySynced,
             activitySkipped
         };

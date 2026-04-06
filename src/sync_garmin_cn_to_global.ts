@@ -31,13 +31,16 @@ async function run() {
                 success: true,
                 wellnessData: {
                     date: result.wellnessDate || '',
-                    synced: !result.wellnessSkipped,
-                    skipped: result.wellnessSkipped || false
+                    timestamp: result.wellnessMetrics?.timestamp || '',
+                    synced: !!result.wellnessMetrics,
+                    skipped: result.wellnessSkipped || false,
+                    metrics: result.wellnessMetrics
                 },
                 activityData: {
                     count: (result.activitySynced || 0) + (result.activitySkipped || 0),
                     synced: result.activitySynced || 0,
-                    skipped: result.activitySkipped || 0
+                    skipped: result.activitySkipped || 0,
+                    activities: result.activityMetrics
                 }
             });
         } else {
