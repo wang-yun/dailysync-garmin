@@ -41,6 +41,7 @@ export interface ActivityMetrics {
     startTime: string;            // 开始时间 (YYYY-MM-DD HH:mm)
     type: string;                  // 运动类型
     title?: string;                // 活动名称
+    locationName?: string;         // 位置名称
     distanceKm?: number;            // 距离 (km)
     durationTotal?: number;         // 总耗时 (s)
     movingTime?: number;           // 移动耗时 (s)
@@ -55,14 +56,15 @@ export interface ActivityMetrics {
     avgGroundContactTime?: number;   // 触地时间 (ms)
     avgStrideLength?: number;       // 步幅 (cm)
     totalAscent?: number;           // 累计爬升 (m)
-    totalDescent?: number;          // 累计下降 (m)
     calories?: number;             // 消耗卡路里
     steps?: number;                // 步数
     aerobicTe?: number;            // 有氧训练效果 (0-5.0)
     anaerobicTe?: number;          // 无氧训练效果 (0-5.0)
     trainingLoad?: number;         // 训练负荷数值
+    recoveryTime?: number;         // 建议恢复时间 (hrs)
+    avgTemp?: number;              // 平均环境温度
+    gear?: string;                 // 使用装备 (跑鞋/球拍)
     vo2Max?: number;               // 最大摄氧量
-    locationName?: string;         // 位置名称
 }
 
 export interface GoogleSheetsServiceConfig {
@@ -238,18 +240,20 @@ export class GoogleSheetsService {
             'Avg_Ground_Contact_Time',
             'Avg_Stride_Length',
             'Total_Ascent',
-            'Total_Descent',
             'Calories',
             'Steps',
             'Aerobic_TE',
             'Anaerobic_TE',
             'Training_Load',
+            'Recovery_Time',
+            'Avg_Temp',
+            'Gear',
             'VO2_Max',
         ];
 
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A1:Z1',
+            range: 'Activities_Log!A1:AB1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [headers] },
         });
@@ -324,18 +328,20 @@ export class GoogleSheetsService {
             m.avgGroundContactTime ?? '',
             m.avgStrideLength ?? '',
             m.totalAscent ?? '',
-            m.totalDescent ?? '',
             m.calories ?? '',
             m.steps ?? '',
             m.aerobicTe ?? '',
             m.anaerobicTe ?? '',
             m.trainingLoad ?? '',
+            m.recoveryTime ?? '',
+            m.avgTemp ?? '',
+            m.gear ?? '',
             m.vo2Max ?? '',
         ]);
 
         const response = await this.sheets.spreadsheets.values.append({
             spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A1:Z1',
+            range: 'Activities_Log!A1:AB1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values },
         });

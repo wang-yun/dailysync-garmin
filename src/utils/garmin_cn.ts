@@ -131,15 +131,30 @@ export interface SyncGarminResult {
         startTime: string;
         type: string;
         title?: string;
+        locationName?: string;
         distanceKm?: number;
         durationTotal?: number;
         movingTime?: number;
         avgHr?: number;
         maxHr?: number;
         avgPace?: string;
+        maxSpeed?: number;
         avgCadence?: number;
-        calories?: number;
+        maxCadence?: number;
+        avgPower?: number;
+        avgVerticalOscillation?: number;
+        avgGroundContactTime?: number;
+        avgStrideLength?: number;
         totalAscent?: number;
+        calories?: number;
+        steps?: number;
+        aerobicTe?: number;
+        anaerobicTe?: number;
+        trainingLoad?: number;
+        recoveryTime?: number;
+        avgTemp?: number;
+        gear?: string;
+        vo2Max?: number;
     }>;
     activitySynced?: number;
     activitySkipped?: number;
@@ -265,12 +280,14 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
                                 avgGroundContactTime: actMetrics.avgGroundContactTime,
                                 avgStrideLength: actMetrics.avgStrideLength,
                                 totalAscent: actMetrics.totalAscent,
-                                totalDescent: actMetrics.totalDescent,
                                 calories: actMetrics.calories,
                                 steps: actMetrics.steps,
                                 aerobicTe: actMetrics.aerobicTe,
                                 anaerobicTe: actMetrics.anaerobicTe,
                                 trainingLoad: actMetrics.trainingLoad,
+                                recoveryTime: actMetrics.recoveryTime,
+                                avgTemp: actMetrics.avgTemp,
+                                gear: actMetrics.gear,
                                 vo2Max: actMetrics.vo2Max,
                             });
                         } else {
