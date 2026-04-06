@@ -374,11 +374,10 @@ export class GoogleSheetsService {
     }
 
     /**
-     * Update wellness data for a given date (replace existing row, keep other data)
+     * Insert wellness data at row 2 (newest first, multiple inserts per day allowed)
      */
     async updateWellnessData(data: WellnessMetrics): Promise<void> {
         const date = data.date;
-        const rowNum = await this.findWellnessRowByDate(date);
         const sheetId = await this.getSheetId('Wellness_Daily');
 
         const values = [[
@@ -407,74 +406,33 @@ export class GoogleSheetsService {
             data.trainingReadiness ?? '',
         ]];
 
-        if (rowNum > 0) {
-            // Delete the existing row and insert new row at row 2
-            await this.sheets.spreadsheets.batchUpdate({
-                spreadsheetId: this.spreadsheetId,
-                requestBody: {
-                    requests: [
-                        {
-                            deleteDimension: {
-                                range: {
-                                    sheetId: sheetId,
-                                    dimension: 'ROWS',
-                                    startIndex: rowNum - 1,
-                                    endIndex: rowNum,
-                                },
+        // Always insert at row 2, pushing existing data down
+        await this.sheets.spreadsheets.batchUpdate({
+            spreadsheetId: this.spreadsheetId,
+            requestBody: {
+                requests: [
+                    {
+                        insertDimension: {
+                            range: {
+                                sheetId: sheetId,
+                                dimension: 'ROWS',
+                                startIndex: 1,
+                                endIndex: 2,
                             },
                         },
-                        {
-                            insertDimension: {
-                                range: {
-                                    sheetId: sheetId,
-                                    dimension: 'ROWS',
-                                    startIndex: 1,
-                                    endIndex: 2,
-                                },
-                            },
-                        },
-                    ],
-                },
-            });
+                    },
+                ],
+            },
+        });
 
-            // Write new data at row 2
-            await this.sheets.spreadsheets.values.update({
-                spreadsheetId: this.spreadsheetId,
-                range: 'Wellness_Daily!A2:W2',
-                valueInputOption: 'USER_ENTERED',
-                requestBody: { values },
-            });
+        await this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Wellness_Daily!A2:W2',
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values },
+        });
 
-            console.log(`Replaced wellness data for ${date} (old row ${rowNum})`);
-        } else {
-            // No existing data, insert at row 2
-            await this.sheets.spreadsheets.batchUpdate({
-                spreadsheetId: this.spreadsheetId,
-                requestBody: {
-                    requests: [
-                        {
-                            insertDimension: {
-                                range: {
-                                    sheetId: sheetId,
-                                    dimension: 'ROWS',
-                                    startIndex: 1,
-                                    endIndex: 2,
-                                },
-                            },
-                        },
-                    ],
-                },
-            });
-
-            await this.sheets.spreadsheets.values.update({
-                spreadsheetId: this.spreadsheetId,
-                range: 'Wellness_Daily!A2:W2',
-                valueInputOption: 'USER_ENTERED',
-                requestBody: { values },
-            });
-
-            console.log(`Inserted new wellness data for ${date} at row 2`);
-        }
+        console.log(`Inserted new wellness data for ${date} at row 2`);
     }
 
     /**
