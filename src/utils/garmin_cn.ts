@@ -104,20 +104,42 @@ export interface SyncGarminResult {
         date: string;
         timestamp: string;
         sleepScore?: number;
+        sleepDurationTotal?: number;
+        deepSleepDuration?: number;
+        remSleepDuration?: number;
+        lightSleepDuration?: number;
+        awakeDuration?: number;
         hrvLastNightAvg?: number;
+        hrvStatusWeekly?: string;
         rhr?: number;
         bodyBatteryHigh?: number;
         bodyBatteryLow?: number;
         stressAvg?: number;
+        stressDurationHigh?: number;
+        minSpO2?: number;
         avgSpO2?: number;
+        avgRespiration?: number;
+        activeCalories?: number;
+        restingCalories?: number;
+        steps?: number;
         intensityMinutes?: number;
+        floorsClimbed?: number;
+        trainingReadiness?: number;
     };
     activityMetrics?: Array<{
+        activityId: string;
+        startTime: string;
         type: string;
         title?: string;
-        startTime: string;
         distanceKm?: number;
+        durationTotal?: number;
+        movingTime?: number;
+        avgHr?: number;
+        maxHr?: number;
+        avgPace?: string;
+        avgCadence?: number;
         calories?: number;
+        totalAscent?: number;
     }>;
     activitySynced?: number;
     activitySkipped?: number;
@@ -161,13 +183,27 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
                     date: wellnessData.date,
                     timestamp: wellnessData.timestamp || '',
                     sleepScore: wellnessData.sleepScore,
+                    sleepDurationTotal: wellnessData.sleepDurationTotal,
+                    deepSleepDuration: wellnessData.deepSleepDuration,
+                    remSleepDuration: wellnessData.remSleepDuration,
+                    lightSleepDuration: wellnessData.lightSleepDuration,
+                    awakeDuration: wellnessData.awakeDuration,
                     hrvLastNightAvg: wellnessData.hrvLastNightAvg,
+                    hrvStatusWeekly: wellnessData.hrvStatusWeekly,
                     rhr: wellnessData.rhr,
                     bodyBatteryHigh: wellnessData.bodyBatteryHigh,
                     bodyBatteryLow: wellnessData.bodyBatteryLow,
                     stressAvg: wellnessData.stressAvg,
+                    stressDurationHigh: wellnessData.stressDurationHigh,
+                    minSpO2: wellnessData.minSpO2,
                     avgSpO2: wellnessData.avgSpO2,
+                    avgRespiration: wellnessData.avgRespiration,
+                    activeCalories: wellnessData.activeCalories,
+                    restingCalories: wellnessData.restingCalories,
+                    steps: wellnessData.steps,
                     intensityMinutes: wellnessData.intensityMinutes,
+                    floorsClimbed: wellnessData.floorsClimbed,
+                    trainingReadiness: wellnessData.trainingReadiness,
                 };
             } else {
                 console.log(`健康数据无内容或获取失败: ${wellnessData.date}`);
@@ -210,11 +246,19 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
                             console.log(`活动数据已同步到 Google Sheets: ${cnAct.activityId}`);
                             activitySynced++;
                             activityMetrics.push({
+                                activityId: actMetrics.activityId,
+                                startTime: actMetrics.startTime,
                                 type: actMetrics.type,
                                 title: actMetrics.title,
-                                startTime: actMetrics.startTime,
                                 distanceKm: actMetrics.distanceKm,
+                                durationTotal: actMetrics.durationTotal,
+                                movingTime: actMetrics.movingTime,
+                                avgHr: actMetrics.avgHr,
+                                maxHr: actMetrics.maxHr,
+                                avgPace: actMetrics.avgPace,
+                                avgCadence: actMetrics.avgCadence,
                                 calories: actMetrics.calories,
+                                totalAscent: actMetrics.totalAscent,
                             });
                         } else {
                             console.log(`活动已在 Google Sheets 中，跳过: ${cnAct.activityId}`);

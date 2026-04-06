@@ -66,14 +66,30 @@ export interface SyncResult {
         synced: boolean;
         skipped: boolean;
         metrics?: {
+            date: string;
+            timestamp: string;
             sleepScore?: number;
+            sleepDurationTotal?: number;
+            deepSleepDuration?: number;
+            remSleepDuration?: number;
+            lightSleepDuration?: number;
+            awakeDuration?: number;
             hrvLastNightAvg?: number;
+            hrvStatusWeekly?: string;
             rhr?: number;
             bodyBatteryHigh?: number;
             bodyBatteryLow?: number;
             stressAvg?: number;
+            stressDurationHigh?: number;
+            minSpO2?: number;
             avgSpO2?: number;
+            avgRespiration?: number;
+            activeCalories?: number;
+            restingCalories?: number;
+            steps?: number;
             intensityMinutes?: number;
+            floorsClimbed?: number;
+            trainingReadiness?: number;
         };
     };
     activityData?: {
@@ -81,11 +97,19 @@ export interface SyncResult {
         synced: number;
         skipped: number;
         activities?: Array<{
+            activityId: string;
+            startTime: string;
             type: string;
             title?: string;
-            startTime: string;
             distanceKm?: number;
+            durationTotal?: number;
+            movingTime?: number;
+            avgHr?: number;
+            maxHr?: number;
+            avgPace?: string;
+            avgCadence?: number;
             calories?: number;
+            totalAscent?: number;
         }>;
     };
     error?: string;
@@ -111,27 +135,41 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
         if (wellnessData && wellnessData.metrics) {
             const w = wellnessData.metrics;
             message += `📊 健康数据 (${wellnessData.timestamp})\n`;
-            if (w.sleepScore !== undefined) message += `  睡眠分数: ${w.sleepScore}\n`;
-            if (w.hrvLastNightAvg !== undefined) message += `  HRV: ${w.hrvLastNightAvg}ms\n`;
-            if (w.rhr !== undefined) message += `  静息心率: ${w.rhr}bpm\n`;
+            message += `━━━━━━━━━━━━━━━━━━━━\n`;
+            if (w.sleepScore !== undefined) message += `睡眠分数: ${w.sleepScore}\n`;
+            if (w.sleepDurationTotal !== undefined) message += `总睡眠: ${w.sleepDurationTotal}min\n`;
+            if (w.deepSleepDuration !== undefined) message += `深睡: ${w.deepSleepDuration}min  `;
+            if (w.remSleepDuration !== undefined) message += `REM: ${w.remSleepDuration}min  `;
+            if (w.lightSleepDuration !== undefined) message += `浅睡: ${w.lightSleepDuration}min\n`;
+            if (w.awakeDuration !== undefined) message += `清醒: ${w.awakeDuration}min\n`;
+            if (w.hrvLastNightAvg !== undefined) message += `HRV: ${w.hrvLastNightAvg}ms\n`;
+            if (w.hrvStatusWeekly !== undefined) message += `HRV状态: ${w.hrvStatusWeekly}\n`;
+            if (w.rhr !== undefined) message += `静息心率: ${w.rhr}bpm\n`;
             if (w.bodyBatteryHigh !== undefined && w.bodyBatteryLow !== undefined) {
-                message += `  身体电量: ${w.bodyBatteryLow}→${w.bodyBatteryHigh}\n`;
+                message += `身体电量: ${w.bodyBatteryLow}→${w.bodyBatteryHigh}\n`;
             }
-            if (w.stressAvg !== undefined) message += `  平均压力: ${w.stressAvg}\n`;
-            if (w.avgSpO2 !== undefined) message += `  血氧: ${w.avgSpO2}%\n`;
-            if (w.intensityMinutes !== undefined) message += `  强度分钟: ${w.intensityMinutes}\n`;
+            if (w.stressAvg !== undefined) message += `平均压力: ${w.stressAvg}  `;
+            if (w.stressDurationHigh !== undefined) message += `高压: ${w.stressDurationHigh}min\n`;
+            if (w.minSpO2 !== undefined) message += `最低血氧: ${w.minSpO2}%  `;
+            if (w.avgSpO2 !== undefined) message += `平均血氧: ${w.avgSpO2}%\n`;
+            if (w.avgRespiration !== undefined) message += `呼吸频率: ${w.avgRespiration}brpm\n`;
+            if (w.intensityMinutes !== undefined) message += `强度分钟: ${w.intensityMinutes}\n`;
             message += `\n`;
         }
 
         if (activityData && activityData.activities && activityData.activities.length > 0) {
             message += `🏃 活动数据 (新增 ${activityData.synced} 条)\n`;
+            message += `━━━━━━━━━━━━━━━━━━━━\n`;
             for (const act of activityData.activities) {
                 const dist = act.distanceKm ? ` ${act.distanceKm}km` : '';
+                const pace = act.avgPace ? ` 配速${act.avgPace}/km` : '';
+                const hr = act.avgHr ? ` 心率${act.avgHr}` : '';
                 const cal = act.calories ? ` ${act.calories}cal` : '';
-                message += `  • ${act.type}${dist}${cal}\n`;
+                const ascent = act.totalAscent ? ` 爬升${act.totalAscent}m` : '';
+                message += `• ${act.type} ${act.startTime}${dist}${pace}${hr}${cal}${ascent}\n`;
             }
             if (activityData.skipped > 0) {
-                message += `  跳过 ${activityData.skipped} 条（已存在）\n`;
+                message += `跳过 ${activityData.skipped} 条（已存在）\n`;
             }
         } else if (activityData && activityData.synced === 0) {
             message += `🏃 活动数据: 无新增\n`;
