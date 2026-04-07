@@ -22,8 +22,8 @@ async function resyncActivity() {
         // 获取 Garmin CN client
         const client = await getGaminCNClient();
         
-        // 获取活动详情
-        const activityDetail = await client.getActivityDetails(activityId);
+        // 获取活动详情 - 使用正确的 API
+        const activityDetail = await client.getActivity({ activityId: activityId });
         console.log(`活动名称: ${activityDetail.activityName}`);
         console.log(`开始时间: ${activityDetail.startTimeLocal}`);
         
