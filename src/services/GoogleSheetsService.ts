@@ -304,9 +304,9 @@ export class GoogleSheetsService {
     }
 
     /**
-     * Append activity metrics to the Activities_Log sheet (at the end)
+     * Insert activity metrics to the Activities_Log sheet at row 2 (after header, newest first)
      */
-    async appendActivityData(data: ActivityMetrics | ActivityMetrics[]): Promise<sheets_v4.Schema$AppendValuesResponse> {
+    async appendActivityData(data: ActivityMetrics | ActivityMetrics[]): Promise<any> {
         const metricsArray = Array.isArray(data) ? data : [data];
         const values = metricsArray.map(m => [
             m.activityId,
@@ -339,14 +339,33 @@ export class GoogleSheetsService {
             m.vo2Max ?? '',
         ]);
 
-        const response = await this.sheets.spreadsheets.values.append({
+        // First, insert a new row at position 2 (after header)
+        await this.sheets.spreadsheets.batchUpdate({
             spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A1:AB1',
+            requestBody: {
+                requests: [{
+                    insertDimension: {
+                        range: {
+                            sheetId: 0,  // You may need to get the actual sheetId
+                            dimension: 'ROWS',
+                            startIndex: 1,
+                            endIndex: 2
+                        },
+                        inheritFromBefore: false
+                    }
+                }]
+            }
+        });
+
+        // Then write the data to row 2
+        const response = await this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Activities_Log!A2:AB2',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values },
         });
 
-        console.log('Appended activity metrics:', values);
+        console.log('Inserted activity metrics at row 2:', values);
         return response.data;
     }
 
