@@ -340,13 +340,14 @@ export class GoogleSheetsService {
         ]);
 
         // First, insert a new row at position 2 (after header)
+        const sheetId = await this.getSheetId('Activities_Log');
         await this.sheets.spreadsheets.batchUpdate({
             spreadsheetId: this.spreadsheetId,
             requestBody: {
                 requests: [{
                     insertDimension: {
                         range: {
-                            sheetId: 0,  // You may need to get the actual sheetId
+                            sheetId: sheetId,
                             dimension: 'ROWS',
                             startIndex: 1,
                             endIndex: 2
