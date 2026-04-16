@@ -491,8 +491,43 @@ export class GoogleSheetsService {
      * Check if activity data for the given activity ID already exists
      */
     async hasActivityData(activityId: string): Promise<boolean> {
-        const lastRow = await this.getLatestRow('Activities_Log', 'U');
-        if (!lastRow) return false;
-        return lastRow[0] === activityId;
+        const response = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Activities_Log!A:A',
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) return false;
+
+        // Skip header row (row 1)
+        for (let i = 1; i < rows.length; i++) {
+            const rowActivityId = rows[i][0] || '';
+            if (rowActivityId === activityId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Find the row number for a given activity ID in Activities_Log (returns 0 if not found)
+     */
+    async findActivityRowById(activityId: string): Promise<number> {
+        const response = await this.sheets.spreadsheets.values.get({
+            spreadsheetId: this.spreadsheetId,
+            range: 'Activities_Log!A:A',
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) return 0;
+
+        // Skip header row (row 1)
+        for (let i = 1; i < rows.length; i++) {
+            const rowActivityId = rows[i][0] || '';
+            if (rowActivityId === activityId) {
+                return i + 1; // 1-indexed row number
+            }
+        }
+        return 0;
     }
 }
