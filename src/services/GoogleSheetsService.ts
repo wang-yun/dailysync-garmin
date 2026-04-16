@@ -304,70 +304,98 @@ export class GoogleSheetsService {
     }
 
     /**
-     * Insert activity metrics to the Activities_Log sheet at row 2 (after header, newest first)
+     * Insert activity metrics to the Activities_Log sheet at the correct position (sorted by activityId descending, newest first)
      */
     async appendActivityData(data: ActivityMetrics | ActivityMetrics[]): Promise<any> {
         const metricsArray = Array.isArray(data) ? data : [data];
-        const values = metricsArray.map(m => [
-            m.activityId,
-            m.startTime,
-            m.type,
-            m.title ?? '',
-            m.locationName ?? '',
-            m.distanceKm ?? '',
-            m.durationTotal ?? '',
-            m.movingTime ?? '',
-            m.avgHr ?? '',
-            m.maxHr ?? '',
-            m.avgPace ?? '',
-            m.maxSpeed ?? '',
-            m.avgCadence ?? '',
-            m.maxCadence ?? '',
-            m.avgPower ?? '',
-            m.avgVerticalOscillation ?? '',
-            m.avgGroundContactTime ?? '',
-            m.avgStrideLength ?? '',
-            m.totalAscent ?? '',
-            m.calories ?? '',
-            m.steps ?? '',
-            m.aerobicTe ?? '',
-            m.anaerobicTe ?? '',
-            m.trainingLoad ?? '',
-            m.recoveryTime ?? '',
-            m.avgTemp ?? '',
-            m.gear ?? '',
-            m.vo2Max ?? '',
-        ]);
-
-        // First, insert a new row at position 2 (after header)
         const sheetId = await this.getSheetId('Activities_Log');
-        await this.sheets.spreadsheets.batchUpdate({
+
+        // Get all existing activityIds from column A to find insert positions
+        const response = await this.sheets.spreadsheets.values.get({
             spreadsheetId: this.spreadsheetId,
-            requestBody: {
-                requests: [{
-                    insertDimension: {
-                        range: {
-                            sheetId: sheetId,
-                            dimension: 'ROWS',
-                            startIndex: 1,
-                            endIndex: 2
-                        },
-                        inheritFromBefore: false
-                    }
-                }]
+            range: 'Activities_Log!A:A',
+        });
+
+        const existingRows = response.data.values || [];
+
+        for (const metrics of metricsArray) {
+            const newActivityId = metrics.activityId;
+            const values = [[
+                metrics.activityId,
+                metrics.startTime,
+                metrics.type,
+                metrics.title ?? '',
+                metrics.locationName ?? '',
+                metrics.distanceKm ?? '',
+                metrics.durationTotal ?? '',
+                metrics.movingTime ?? '',
+                metrics.avgHr ?? '',
+                metrics.maxHr ?? '',
+                metrics.avgPace ?? '',
+                metrics.maxSpeed ?? '',
+                metrics.avgCadence ?? '',
+                metrics.maxCadence ?? '',
+                metrics.avgPower ?? '',
+                metrics.avgVerticalOscillation ?? '',
+                metrics.avgGroundContactTime ?? '',
+                metrics.avgStrideLength ?? '',
+                metrics.totalAscent ?? '',
+                metrics.calories ?? '',
+                metrics.steps ?? '',
+                metrics.aerobicTe ?? '',
+                metrics.anaerobicTe ?? '',
+                metrics.trainingLoad ?? '',
+                metrics.recoveryTime ?? '',
+                metrics.avgTemp ?? '',
+                metrics.gear ?? '',
+                metrics.vo2Max ?? '',
+            ]];
+
+            // Find the insert position: first row where activityId < newActivityId (descending order)
+            // Skip header row (i=0), start from i=1
+            let insertIndex = existingRows.length; // Default: append at end
+            for (let i = 1; i < existingRows.length; i++) {
+                const existingId = existingRows[i][0];
+                if (existingId && Number(existingId) < Number(newActivityId)) {
+                    insertIndex = i;
+                    break;
+                }
             }
-        });
 
-        // Then write the data to row 2
-        const response = await this.sheets.spreadsheets.values.update({
-            spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A2:AB2',
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values },
-        });
+            // Insert a new row at the found position
+            await this.sheets.spreadsheets.batchUpdate({
+                spreadsheetId: this.spreadsheetId,
+                requestBody: {
+                    requests: [{
+                        insertDimension: {
+                            range: {
+                                sheetId: sheetId,
+                                dimension: 'ROWS',
+                                startIndex: insertIndex,
+                                endIndex: insertIndex + 1
+                            },
+                            inheritFromBefore: false
+                        }
+                    }]
+                }
+            });
 
-        console.log('Inserted activity metrics at row 2:', values);
-        return response.data;
+            // Write the data to the inserted row
+            const range = `Activities_Log!A${insertIndex + 1}:AB${insertIndex + 1}`;
+            await this.sheets.spreadsheets.values.update({
+                spreadsheetId: this.spreadsheetId,
+                range: range,
+                valueInputOption: 'USER_ENTERED',
+                requestBody: { values },
+            });
+
+            // Update existingRows to reflect the insertion for the next iteration
+            existingRows.splice(insertIndex, 0, [newActivityId]);
+
+            console.log(`Inserted activity ${newActivityId} at row ${insertIndex + 1}`);
+        }
+
+        return { success: true };
     }
 
     /**
