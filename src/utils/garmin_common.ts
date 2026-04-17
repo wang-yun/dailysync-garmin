@@ -294,7 +294,8 @@ export const mapActivityFromGarmin = (activity: Record<string, any>): ActivityMe
         locationName,
     } = activity;
 
-    const avgPace = averageSpeed ? (1 / (averageSpeed / 1000 * 60)).toFixed(2) : undefined;
+    // avgPace 存储为 mm:ss 文本格式（如 6:28），而非小数（如 6.46）
+    const avgPace = averagePaceText;
 
     return {
         activityId: String(activityId),
