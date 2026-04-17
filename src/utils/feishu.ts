@@ -177,7 +177,7 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
             message += `━━━━━━━━━━━━━━━━━━━━\n`;
             for (const act of activityData.activities) {
                 const dist = act.distanceKm ? ` ${act.distanceKm.toFixed(2)}km` : '';
-                const pace = act.avgPace ? ` 配速${act.avgPace}/km` : '';
+                const pace = act.averagePaceText ? ` 配速${act.averagePaceText}/km` : '';
                 const hr = act.avgHr ? ` 心率${act.avgHr}` : '';
                 const maxHr = act.maxHr ? `/${act.maxHr}` : '';
                 const cadence = act.avgCadence ? ` 步频${act.avgCadence}` : '';
