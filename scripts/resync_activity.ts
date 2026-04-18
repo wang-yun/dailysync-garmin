@@ -1,4 +1,4 @@
-// 单独同步指定活动到 Google Sheets
+// 单独同步指定活动到 Google Sheets (支持更新已有记录)
 // 使用方法:
 //   npx tsx scripts/resync_activity.ts <activityId>
 
@@ -60,15 +60,8 @@ async function resyncActivity() {
         // 初始化 Google Sheets 服务
         const sheetsService = new GoogleSheetsService();
         
-        // 检查是否已存在
-        const hasExisting = await sheetsService.hasActivityData(activityId);
-        if (hasExisting) {
-            console.log('Google Sheets 中已存在该活动，跳过写入');
-            return;
-        }
-        
-        // 写入 Google Sheets
-        await sheetsService.appendActivityData(actMetrics);
+        // 使用 updateActivityData (upsert 行为：存在则更新，不存在则插入)
+        await sheetsService.updateActivityData(actMetrics);
         console.log(`✅ 成功同步到 Google Sheets: ${foundActivity.activityName}`);
         
     } catch (error: any) {

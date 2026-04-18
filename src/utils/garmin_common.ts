@@ -74,7 +74,8 @@ export const getGarminStatistics = async (client: GarminClientType): Promise<Rec
         startTimeLocal, // 活动开始时间
         distance, // 距离
         duration, // 时间
-        averageSpeed, // 平均速度 m/s
+        averageSpeed,
+        averagePaceText, // 平均速度 m/s
         averageHR, // 平均心率
         maxHR, // 最大心率
         averageRunningCadenceInStepsPerMinute, // 平均每分钟步频
@@ -106,7 +107,8 @@ export const getGarminStatistics = async (client: GarminClientType): Promise<Rec
         distance, // 距离
         duration, // 持续时间
         // averageSpeed 是 m/s
-        averageSpeed, // 速度
+        averageSpeed,
+        averagePaceText, // 速度
         averagePace: pace,  // min/km
         averagePaceText: `${pace_min}:${pace_second_text}`,  // min/km
         averageHR, // 平均心率
@@ -277,6 +279,7 @@ export const mapActivityFromGarmin = (activity: Record<string, any>): ActivityMe
         averageHR,
         maxHR,
         averageSpeed,
+        averagePaceText,
         maxSpeed,
         averageRunningCadenceInStepsPerMinute,
         maxRunningCadenceInStepsPerMinute,
@@ -295,7 +298,9 @@ export const mapActivityFromGarmin = (activity: Record<string, any>): ActivityMe
     } = activity;
 
     // avgPace 存储为 mm:ss 文本格式（如 6:28），而非小数（如 6.46）
-    const avgPace = averagePaceText;
+    // 如果 averageSpeed 缺失（Garmin CN API 的 getActivities 不返回此字段），则用 distance/duration 推算
+    const speedForPace = averageSpeed ?? (distance && duration ? distance / duration : undefined);
+    const avgPace = averagePaceText || (speedForPace ? `${Math.floor(1 / (speedForPace / 1000 * 60))}:${((1 / (speedForPace / 1000 * 60)) % 1 * 60).toFixed(0).padStart(2, '0')}` : undefined);
 
     return {
         activityId: String(activityId),

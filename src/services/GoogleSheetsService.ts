@@ -559,4 +559,60 @@ export class GoogleSheetsService {
         }
         return 0;
     }
+
+    /**
+     * Update an existing activity row with new data (upsert behavior)
+     * If activity exists, update it; otherwise insert new row
+     */
+    async updateActivityData(metrics: ActivityMetrics): Promise<void> {
+        const rowNum = await this.findActivityRowById(metrics.activityId);
+        if (rowNum === 0) {
+            console.log(`Activity ${metrics.activityId} not found, inserting new row`);
+            await this.appendActivityData(metrics);
+            return;
+        }
+
+        const values = [[
+            metrics.activityId,
+            metrics.startTime,
+            metrics.type,
+            metrics.title ?? '',
+            metrics.locationName ?? '',
+            metrics.distanceKm ?? '',
+            metrics.durationTotal ?? '',
+            metrics.movingTime ?? '',
+            metrics.avgHr ?? '',
+            metrics.maxHr ?? '',
+            metrics.avgPace ?? '',
+            metrics.maxSpeed ?? '',
+            metrics.avgCadence ?? '',
+            metrics.maxCadence ?? '',
+            metrics.avgPower ?? '',
+            metrics.avgVerticalOscillation ?? '',
+            metrics.avgGroundContactTime ?? '',
+            metrics.avgStrideLength ?? '',
+            metrics.totalAscent ?? '',
+            metrics.calories ?? '',
+            metrics.steps ?? '',
+            metrics.aerobicTe ?? '',
+            metrics.anaerobicTe ?? '',
+            metrics.trainingLoad ?? '',
+            metrics.recoveryTime ?? '',
+            metrics.avgTemp ?? '',
+            metrics.gear ?? '',
+            metrics.vo2Max ?? '',
+        ]];
+
+        const range = `Activities_Log!A${rowNum}:AB${rowNum}`;
+        await this.sheets.spreadsheets.values.update({
+            spreadsheetId: this.spreadsheetId,
+            range: range,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: { values },
+        });
+
+        console.log(`Updated activity ${metrics.activityId} at row ${rowNum}`);
+    }
+
+
 }
