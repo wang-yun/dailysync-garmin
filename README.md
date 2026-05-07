@@ -114,7 +114,11 @@ ping sso.garmin.cn
 
 ### 安装依赖
 ```shell
-yarn
+# 推荐使用 npm
+npm install
+
+# 或使用 pnpm
+pnpm install
 ```
 
 ---
@@ -128,8 +132,8 @@ yarn
 ```shell
 # ============ Garmin 账号配置 ============
 # 中国区账号
-GARMIN_CN_USERNAME=your_cn_email@example.com
-GARMIN_CN_PASSWORD=your_cn_password
+GARMIN_USERNAME=your_cn_email@example.com
+GARMIN_PASSWORD=your_cn_password
 
 # 国际区账号
 GARMIN_GLOBAL_USERNAME=your_global_email@example.com
@@ -162,9 +166,17 @@ FEISHU_BOT_USER_ID=ou_xxxxxxxxxxxxxxxxx
 # 每次同步要迁移的活动数量（建议不要太大）
 GARMIN_MIGRATE_NUM=100
 
-# 是否启用 Garmin Global 同步（true=启用，false=禁用）
-GARMIN_GLOBAL_SYNC_ENABLED=false
+# 同步时检查最大的活动数量
+GARMIN_SYNC_NUM=10
+
+# Bark iOS 推送 key（可选）
+BARK_KEY=
+
+# 是否启用 Google Sheets 同步
+GOOGLE_SHEETS_ENABLED=true
 ```
+
+> ⚠️ 注意：中国区的环境变量名为 `GARMIN_USERNAME` / `GARMIN_PASSWORD`，国际区的为 `GARMIN_GLOBAL_USERNAME` / `GARMIN_GLOBAL_PASSWORD`。旧版使用的 `GARMIN_CN_USERNAME` 已废弃，请使用以上标准名称。
 
 ### 2. Google Sheets 配置
 
@@ -202,25 +214,73 @@ GARMIN_GLOBAL_SYNC_ENABLED=false
 
 ## 使用方法
 
-### 运行同步（推荐方式）
+项目统一通过 `src/cli.ts` 入口执行，所有命令均可通过以下方式运行：
 
 ```shell
-# 同步中国区数据到国际区 + Google Sheets + 飞书通知
-yarn sync
+# 方式一：npm script（推荐）
+npm run <command>
 
-# 仅测试 Google Sheets 功能
-yarn test:sheets
+# 方式二：直接使用 tsx
+npx tsx src/cli.ts <command>
 ```
 
-### 数据迁移
+### 命令速查表
+
+| 命令 | 等价旧名称（兼容） | 功能 |
+|------|-------------------|------|
+| `sync` | — | 日常同步：中国区 → 国际区 + Google Sheets + 飞书通知 |
+| `sync:global-to-cn` | `sync_global` | 反向同步：国际区 → 中国区 |
+| `migrate:cn-to-global` | `migrate_garmin_cn_to_global` | 历史迁移：中国区活动 → 国际区 |
+| `migrate:global-to-cn` | `migrate_garmin_global_to_cn` | 历史迁移：国际区活动 → 中国区 |
+| `migrate:cn-to-sheets` | `migrate_garmin_cn_to_sheets` | 历史迁移：中国区活动 + 健康 → Google Sheets |
+| `migrate:wellness` | `migrate_wellness` | 历史迁移：中国区健康 → Google Sheets |
+| `rq` | — | RQ 跑力数据采集 → Google Sheets |
+| `test:sheets` | — | 测试 Google Sheets 连接 |
+| `help` | — | 显示帮助信息 |
+
+### 常用示例
 
 ```shell
-# 迁移活动数据（中国区 → Google Sheets）
-yarn migrate_garmin_cn_to_sheets
+# 同步中国区 → 国际区 + Sheets + 飞书通知
+npm run sync
 
-# 迁移健康数据（中国区 → Google Sheets）
-yarn migrate_wellness
+# 反向同步国际区 → 中国区
+npm run sync:global-to-cn
+
+# 迁移活动数据到 Google Sheets
+npm run migrate:cn-to-sheets
+
+# 仅迁移健康数据到 Google Sheets（默认最近365天）
+npm run migrate:wellness
+
+# 测试 Google Sheets 连接
+npm run test:sheets
 ```
+
+### 参数控制（环境变量）
+
+命令的行为通过环境变量控制，可在 `.env` 文件中设置，也可在命令行临时覆盖：
+
+```shell
+# 指定迁移起止位置
+GARMIN_MIGRATE_START=0 GARMIN_MIGRATE_NUM=50 npm run migrate:cn-to-sheets
+
+# 指定健康数据迁移天数
+WELLNESS_DAYS_TO_MIGRATE=90 npm run migrate:wellness
+```
+
+#### 完整参数表
+
+| 环境变量 | 默认值 | 适用命令 | 说明 |
+|----------|--------|----------|------|
+| `GARMIN_MIGRATE_NUM` | `100` | 所有 migrate 命令 | 每次处理的记录数 |
+| `GARMIN_MIGRATE_START` | `0` | 所有 migrate 命令 | 从第几条记录开始 |
+| `WELLNESS_DAYS_TO_MIGRATE` | `365`（migrate:wellness）/<br>`30`（migrate:cn-to-sheets） | `migrate:wellness`、`migrate:cn-to-sheets` | 往前追溯的天数 |
+| `GOOGLE_SHEETS_ENABLED` | `false` | `sync` | 是否启用 Google Sheets 写入 |
+| `GARMIN_SYNC_NUM` | `10` | `sync` | 每次同步检查的最大活动数 |
+| `BARK_KEY` | — | 所有命令 | Bark iOS 推送 key（留空禁用） |
+
+> 💡 注意：环境变量的优先级为 **命令行临时设置 > .env 文件 > 代码默认值**。
 
 ### Docker 部署
 
@@ -233,11 +293,9 @@ docker-compose up
 
 ## 定时任务（Linux）
 
-### 使用 tsx 运行（推荐，避免内存问题）
-
 ```shell
 # 每 12 小时执行一次同步
-0 */12 * * * cd /path/to/dailysync-garmin && tsx src/sync_garmin_cn_to_global.ts >> /var/log/dailysync.log 2>&1
+0 */12 * * * cd /path/to/dailysync-garmin && npx tsx src/cli.ts sync >> /var/log/dailysync.log 2>&1
 ```
 
 ### 查看日志
@@ -288,8 +346,7 @@ tail -100f /var/log/dailysync.log
 
 ### 2. 内存溢出（Node.js heap out of memory）
 ```shell
-# 使用 tsx 替代 ts-node
-NODE_OPTIONS="--max-old-space-size=4096" tsx src/sync_garmin_cn_to_global.ts
+NODE_OPTIONS="--max-old-space-size=4096" npx tsx src/cli.ts migrate:cn-to-sheets
 ```
 
 ### 3. Google Sheets 写入失败
