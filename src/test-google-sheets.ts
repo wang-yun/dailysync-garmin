@@ -1,5 +1,6 @@
 import 'dotenv/config';
-import { GoogleSheetsService, WellnessMetrics, ActivityMetrics } from './services/GoogleSheetsService';
+import { GoogleSheetsService } from './services/GoogleSheetsService';
+import { WellnessMetrics, ActivityMetrics } from './models';
 
 async function runTest() {
     console.log('=== GoogleSheetsService Test ===\n');
@@ -25,7 +26,7 @@ async function runTest() {
             lightSleepDuration: 237,
             awakeDuration: 12,
             hrvLastNightAvg: 65,
-            hrvStatusWeekly: 62,
+            hrvStatusWeekly: '62',
             rhr: 52,
             bodyBatteryHigh: 95,
             bodyBatteryLow: 20,

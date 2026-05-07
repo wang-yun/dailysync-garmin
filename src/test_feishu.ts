@@ -10,6 +10,7 @@ async function testFeishu() {
         success: true,
         wellnessData: {
             date: '2026-04-04',
+            timestamp: '2026-04-04 08:00:00',
             synced: true,
             skipped: false
         },

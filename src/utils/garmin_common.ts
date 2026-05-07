@@ -10,8 +10,7 @@ import {
     GARMIN_URL_DEFAULT,
     GARMIN_USERNAME_DEFAULT,
 } from '../constant';
-import { GarminClientType } from './type';
-import { ActivityMetrics, WellnessMetrics } from '../services/GoogleSheetsService';
+import { GarminClientType, ActivityMetrics, WellnessMetrics } from '../models';
 import _ from 'lodash';
 const decompress = require('decompress');
 
@@ -108,7 +107,6 @@ export const getGarminStatistics = async (client: GarminClientType): Promise<Rec
         duration, // 持续时间
         // averageSpeed 是 m/s
         averageSpeed,
-        averagePaceText, // 速度
         averagePace: pace,  // min/km
         averagePaceText: `${pace_min}:${pace_second_text}`,  // min/km
         averageHR, // 平均心率

@@ -1,20 +1,10 @@
 import axios from 'axios';
+import { FeishuNotificationData, WellnessMetrics, ActivityMetrics } from '../models';
 
 const FEISHU_APP_ID = process.env.FEISHU_APP_ID;
 const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET;
 const FEISHU_BOT_USER_ID = process.env.FEISHU_BOT_USER_ID;
 const FEISHU_CHAT_ID = process.env.FEISHU_CHAT_ID;
-
-interface FeishuTokenResponse {
-    code: number;
-    msg: string;
-    tenant_access_token?: string;
-}
-
-interface FeishuSendResponse {
-    code: number;
-    msg: string;
-}
 
 let cachedToken: { token: string; expireTime: number } | null = null;
 
@@ -22,7 +12,6 @@ let cachedToken: { token: string; expireTime: number } | null = null;
  * Get Feishu tenant access token
  */
 const getAccessToken = async (): Promise<string | null> => {
-    // Check cache
     if (cachedToken && Date.now() < cachedToken.expireTime) {
         return cachedToken.token;
     }
@@ -33,7 +22,7 @@ const getAccessToken = async (): Promise<string | null> => {
     }
 
     try {
-        const response = await axios.post<FeishuTokenResponse>(
+        const response = await axios.post<{ code: number; msg: string; tenant_access_token?: string }>(
             'https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal',
             {
                 app_id: FEISHU_APP_ID,
@@ -42,10 +31,9 @@ const getAccessToken = async (): Promise<string | null> => {
         );
 
         if (response.data.code === 0 && response.data.tenant_access_token) {
-            // Cache token (expire 30 minutes before actual expiry)
             cachedToken = {
                 token: response.data.tenant_access_token,
-                expireTime: Date.now() + 110 * 60 * 1000 // 110 minutes
+                expireTime: Date.now() + 110 * 60 * 1000
             };
             return cachedToken.token;
         } else {
@@ -58,82 +46,10 @@ const getAccessToken = async (): Promise<string | null> => {
     }
 };
 
-export interface SyncResult {
-    success: boolean;
-    wellnessData?: {
-        date: string;
-        timestamp: string;
-        synced: boolean;
-        skipped: boolean;
-        metrics?: {
-            date: string;
-            timestamp: string;
-            sleepScore?: number;
-            sleepDurationTotal?: number;
-            deepSleepDuration?: number;
-            remSleepDuration?: number;
-            lightSleepDuration?: number;
-            awakeDuration?: number;
-            hrvLastNightAvg?: number;
-            hrvStatusWeekly?: string;
-            rhr?: number;
-            bodyBatteryHigh?: number;
-            bodyBatteryLow?: number;
-            stressAvg?: number;
-            stressDurationHigh?: number;
-            minSpO2?: number;
-            avgSpO2?: number;
-            avgRespiration?: number;
-            activeCalories?: number;
-            restingCalories?: number;
-            steps?: number;
-            intensityMinutes?: number;
-            floorsClimbed?: number;
-            trainingReadiness?: number;
-        };
-    };
-    activityData?: {
-        count: number;
-        synced: number;
-        skipped: number;
-        activities?: Array<{
-            activityId: string;
-            startTime: string;
-            type: string;
-            title?: string;
-            locationName?: string;
-            distanceKm?: number;
-            durationTotal?: number;
-            movingTime?: number;
-            avgHr?: number;
-            maxHr?: number;
-            avgPace?: string;
-            maxSpeed?: number;
-            avgCadence?: number;
-            maxCadence?: number;
-            avgPower?: number;
-            avgVerticalOscillation?: number;
-            avgGroundContactTime?: number;
-            avgStrideLength?: number;
-            totalAscent?: number;
-            calories?: number;
-            steps?: number;
-            aerobicTe?: number;
-            anaerobicTe?: number;
-            trainingLoad?: number;
-            recoveryTime?: number;
-            avgTemp?: number;
-            gear?: string;
-            vo2Max?: number;
-        }>;
-    };
-    error?: string;
-}
-
 /**
  * Send sync result notification to Feishu Bot
  */
-export const sendFeishuNotification = async (result: SyncResult): Promise<void> => {
+export const sendFeishuNotification = async (result: FeishuNotificationData): Promise<void> => {
     if (!FEISHU_APP_ID || !FEISHU_APP_SECRET) {
         console.log('Feishu not configured, skipping notification');
         return;
@@ -177,7 +93,7 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
             message += `━━━━━━━━━━━━━━━━━━━━\n`;
             for (const act of activityData.activities) {
                 const dist = act.distanceKm ? ` ${act.distanceKm.toFixed(2)}km` : '';
-                const pace = act.averagePaceText ? ` 配速${act.averagePaceText}/km` : '';
+                const pace = act.avgPace ? ` 配速${act.avgPace}/km` : '';
                 const hr = act.avgHr ? ` 心率${act.avgHr}` : '';
                 const maxHr = act.maxHr ? `/${act.maxHr}` : '';
                 const cadence = act.avgCadence ? ` 步频${act.avgCadence}` : '';
@@ -233,7 +149,7 @@ export const sendFeishuNotification = async (result: SyncResult): Promise<void> 
             return;
         }
 
-        const response = await axios.post<FeishuSendResponse>(url, payload, {
+        const response = await axios.post<{ code: number; msg: string }>(url, payload, {
             headers: {
                 Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json'

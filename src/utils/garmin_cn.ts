@@ -8,7 +8,7 @@ import {
     GARMIN_SYNC_NUM_DEFAULT
 } from '../constant';
 import { downloadGarminActivity, getGarminWellnessData, mapActivityFromGarmin, uploadGarminActivity } from './garmin_common';
-import { GarminClientType } from './type';
+import { GarminClientType, SyncGarminResult, WellnessMetrics, ActivityMetrics } from '../models';
 import { number2capital } from './number_tricks';
 const core = require('@actions/core');
 import _ from 'lodash';
@@ -68,6 +68,7 @@ export const getGaminCNClient = async (): Promise<GarminClientType> => {
     } catch (err) {
         console.error(err);
         core.setFailed(err);
+        throw err;
     }
 };
 
@@ -96,71 +97,6 @@ export const migrateGarminCN2GarminGlobal = async (count = 200) => {
     }
 };
 
-export interface SyncGarminResult {
-    success: boolean;
-    wellnessDate?: string;
-    wellnessSkipped?: boolean;
-    wellnessMetrics?: {
-        date: string;
-        timestamp: string;
-        sleepScore?: number;
-        sleepDurationTotal?: number;
-        deepSleepDuration?: number;
-        remSleepDuration?: number;
-        lightSleepDuration?: number;
-        awakeDuration?: number;
-        hrvLastNightAvg?: number;
-        hrvStatusWeekly?: string;
-        rhr?: number;
-        bodyBatteryHigh?: number;
-        bodyBatteryLow?: number;
-        stressAvg?: number;
-        stressDurationHigh?: number;
-        minSpO2?: number;
-        avgSpO2?: number;
-        avgRespiration?: number;
-        activeCalories?: number;
-        restingCalories?: number;
-        steps?: number;
-        intensityMinutes?: number;
-        floorsClimbed?: number;
-        trainingReadiness?: number;
-    };
-    activityMetrics?: Array<{
-        activityId: string;
-        startTime: string;
-        type: string;
-        title?: string;
-        locationName?: string;
-        distanceKm?: number;
-        durationTotal?: number;
-        movingTime?: number;
-        avgHr?: number;
-        maxHr?: number;
-        avgPace?: string;
-        maxSpeed?: number;
-        avgCadence?: number;
-        maxCadence?: number;
-        avgPower?: number;
-        avgVerticalOscillation?: number;
-        avgGroundContactTime?: number;
-        avgStrideLength?: number;
-        totalAscent?: number;
-        calories?: number;
-        steps?: number;
-        aerobicTe?: number;
-        anaerobicTe?: number;
-        trainingLoad?: number;
-        recoveryTime?: number;
-        avgTemp?: number;
-        gear?: string;
-        vo2Max?: number;
-    }>;
-    activitySynced?: number;
-    activitySkipped?: number;
-    error?: string;
-}
-
 export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => {
     try {
         const clientCN = await getGaminCNClient();
@@ -184,7 +120,7 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
 
         let wellnessSkipped = false;
         let wellnessDate = '';
-        let wellnessMetrics: SyncGarminResult['wellnessMetrics'];
+        let wellnessMetrics: WellnessMetrics | undefined;
 
         // 同步健康数据到 Google Sheets (每次都更新)
         if (sheetsService) {
@@ -227,7 +163,7 @@ export const syncGarminCN2GarminGlobal = async (): Promise<SyncGarminResult> => 
 
         let activitySynced = 0;
         let activitySkipped = 0;
-        let activityMetrics: SyncGarminResult['activityMetrics'] = [];
+        let activityMetrics: ActivityMetrics[] = [];
 
         // 同步活动数据到 Garmin Global 和 Google Sheets
         if (latestCnActStartTime === latestGlobalActStartTime) {

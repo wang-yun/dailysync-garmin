@@ -5,7 +5,7 @@ import {
     GARMIN_MIGRATE_START_DEFAULT, GARMIN_SYNC_NUM_DEFAULT,
 } from '../constant';
 import { getGaminCNClient } from './garmin_cn';
-import { GarminClientType } from './type';
+import { GarminClientType } from '../models';
 import { downloadGarminActivity, uploadGarminActivity } from './garmin_common';
 import { number2capital } from './number_tricks';
 const core = require('@actions/core');
@@ -60,6 +60,7 @@ export const getGaminGlobalClient = async (): Promise<GarminClientType> => {
     } catch (err) {
         console.error(err);
         core.setFailed(err);
+        throw err;
     }
 };
 
