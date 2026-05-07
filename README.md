@@ -24,46 +24,66 @@
 ### 3. Google Sheets 数据同步
 每次同步时，自动将以下数据写入 Google Sheets：
 
-#### 健康数据（Wellness_Daily 工作表）
-| 字段 | 说明 |
-|------|------|
-| Date | 日期时间（北京时间，YYYY-MM-DD HH:mm:ss） |
-| Sleep_Score | 睡眠分数（0-100） |
-| Sleep_Duration_Total | 总睡眠时长（分钟） |
-| Deep_Sleep_Duration | 深睡时长（分钟） |
-| REM_Sleep_Duration | REM 时长（分钟） |
-| Light_Sleep_Duration | 浅睡时长（分钟） |
-| Awake_Duration | 清醒时长（分钟） |
-| HRV_LastNight_Avg | 昨晚平均 HRV（ms） |
-| HRV_Status_Weekly | HRV 七天状态（BALANCED/UNBALANCED） |
-| RHR | 静息心率（bpm） |
-| Body_Battery_High | 身体电量最高值 |
-| Body_Battery_Low | 身体电量最低值 |
-| Stress_Avg | 全天平均压力分数 |
-| Stress_Duration_High | 高压时长（分钟） |
-| Min_SpO2 | 昨晚最低血氧（%） |
-| Avg_SpO2 | 昨晚平均血氧（%） |
-| Avg_Respiration | 平均呼吸频率（brpm） |
-| Intensity_Minutes | 强度分钟数 |
+#### Wellness_Daily 工作表（23 列）
+| # | 字段 | 类型 | 说明 |
+|---|------|------|------|
+| A | `Date` | 文本 | 日期时间（北京时间，YYYY-MM-DD HH:mm:ss） |
+| B | `Sleep_Score` | 数字 | 睡眠分数（0-100） |
+| C | `Sleep_Duration_Total` | 数字 | 总睡眠时长（分钟） |
+| D | `Deep_Sleep_Duration` | 数字 | 深睡时长（分钟） |
+| E | `REM_Sleep_Duration` | 数字 | REM 时长（分钟） |
+| F | `Light_Sleep_Duration` | 数字 | 浅睡时长（分钟） |
+| G | `Awake_Duration` | 数字 | 清醒时长（分钟） |
+| H | `HRV_LastNight_Avg` | 数字 | 昨晚平均 HRV（ms） |
+| I | `HRV_Status_Weekly` | 文本 | HRV 七天状态（BALANCED/UNBALANCED） |
+| J | `RHR` | 数字 | 静息心率（bpm） |
+| K | `Body_Battery_High` | 数字 | 身体电量最高值 |
+| L | `Body_Battery_Low` | 数字 | 身体电量最低值 |
+| M | `Stress_Avg` | 数字 | 全天平均压力分数 |
+| N | `Stress_Duration_High` | 数字 | 高压时长（分钟） |
+| O | `Min_SpO2` | 数字 | 昨晚最低血氧（%） |
+| P | `Avg_SpO2` | 数字 | 昨晚平均血氧（%） |
+| Q | `Avg_Respiration` | 数字 | 平均呼吸频率（brpm） |
+| R | `Active_Calories` | 数字 | 活动消耗卡路里 |
+| S | `Resting_Calories` | 数字 | 静息消耗卡路里 |
+| T | `Steps` | 数字 | 步数 |
+| U | `Intensity_Minutes` | 数字 | 强度分钟数 |
+| V | `Floors_Climbed` | 数字 | 爬楼层数 |
+| W | `Training_Readiness` | 数字 | 佳明训练准备程度分数 |
 
-#### 活动数据（Activities_Log 工作表）
-| 字段 | 说明 |
-|------|------|
-| Activity_ID | 佳明原始活动 ID |
-| Start_Time | 开始时间（YYYY-MM-DD HH:mm） |
-| Type | 运动类型（Running/Badminton 等） |
-| Title | 活动名称 |
-| Distance_KM | 距离（km） |
-| Duration_Total | 总耗时（秒） |
-| Moving_Time | 移动耗时（秒） |
-| Avg_HR | 平均心率 |
-| Max_HR | 最大心率 |
-| Avg_Pace | 平均配速（min/km） |
-| Avg_Cadence | 平均步频（步/分） |
-| Avg_Power | 平均功率（W） |
-| Total_Ascent | 累计爬升（m） |
-| Calories | 消耗卡路里 |
-| VO2_Max | 最大摄氧量 |
+#### Activities_Log 工作表（30 列）
+| # | 字段 | 类型 | 说明 |
+|---|------|------|------|
+| A | `Activity_ID` | 文本 | 佳明原始活动 ID |
+| B | `Start_Time` | 文本 | 开始时间（YYYY-MM-DD HH:mm） |
+| C | `Type` | 文本 | 运动类型（Running/Badminton 等） |
+| D | `Title` | 文本 | 活动名称 |
+| E | `Location` | 文本 | 位置名称 |
+| F | `Distance_KM` | 数字 | 距离（km） |
+| G | `Duration_Total` | 数字 | 总耗时（秒） |
+| H | `Moving_Time` | 数字 | 移动耗时（秒） |
+| I | `Avg_HR` | 数字 | 平均心率 |
+| J | `Max_HR` | 数字 | 最大心率 |
+| K | `Avg_Pace` | 文本 | 平均配速（min/km，mm:ss 格式） |
+| L | `Max_Speed` | 数字 | 最大速度（m/s） |
+| M | `Avg_Cadence` | 数字 | 平均步频（步/分） |
+| N | `Max_Cadence` | 数字 | 最大步频 |
+| O | `Avg_Power` | 数字 | 平均功率（W） |
+| P | `Avg_Vertical_Oscillation` | 数字 | 垂直振幅（cm） |
+| Q | `Avg_Vertical_Ratio` | 数字 | 垂直振幅比（%） |
+| R | `Avg_Ground_Contact_Time` | 数字 | 触地时间（ms） |
+| S | `Avg_Ground_Contact_Balance` | 数字 | 触地平衡（%） |
+| T | `Avg_Stride_Length` | 数字 | 步幅（cm） |
+| U | `Total_Ascent` | 数字 | 累计爬升（m） |
+| V | `Calories` | 数字 | 消耗卡路里 |
+| W | `Steps` | 数字 | 步数 |
+| X | `Aerobic_TE` | 数字 | 有氧训练效果（0-5.0） |
+| Y | `Anaerobic_TE` | 数字 | 无氧训练效果（0-5.0） |
+| Z | `Training_Load` | 数字 | 训练负荷数值 |
+| AA | `Recovery_Time` | 数字 | 建议恢复时间（hrs） |
+| AB | `Avg_Temp` | 数字 | 平均环境温度 |
+| AC | `Gear` | 文本 | 使用装备 |
+| AD | `VO2_Max` | 数字 | 最大摄氧量 |
 
 ### 4. 飞书通知
 同步完成后可发送飞书机器人通知，包含：
