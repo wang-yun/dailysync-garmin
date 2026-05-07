@@ -336,8 +336,8 @@ tail -100f /var/log/dailysync.log
 参考视频教程: https://www.bilibili.com/video/BV1v94y1Q7oR/?spm_id_from=333.999.0.0
 
 ### 在 GitHub Secrets 中配置以下变量
-- `GARMIN_CN_USERNAME` / `GARMIN_CN_PASSWORD`
-- `GARMIN_GLOBAL_USERNAME` / `GARMIN_GLOBAL_PASSWORD`
+- `GARMIN_USERNAME` / `GARMIN_PASSWORD`（佳明中国区）
+- `GARMIN_GLOBAL_USERNAME` / `GARMIN_GLOBAL_PASSWORD`（佳明国际区）
 - `GOOGLE_SHEET_ID`
 - `GOOGLE_API_CLIENT_EMAIL`
 - `GOOGLE_API_PRIVATE_KEY`（注意将换行替换为 `\n`）
