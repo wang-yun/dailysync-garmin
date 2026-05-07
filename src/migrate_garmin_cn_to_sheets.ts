@@ -76,17 +76,25 @@ export async function runMigrateCnToSheets(options?: MigrateCnToSheetsOptions): 
         const activityId = String(activity.activityId);
 
         try {
+            const activityMetrics = mapActivityFromGarmin(activity);
             const hasExisting = await sheetsService.hasActivityData(activityId);
             if (hasExisting) {
-                console.log(`[${i + 1}/${activities.length}] ⏭️ 跳过（已存在）: ${activity.activityName} (${activityId})`);
-                skippedCount++;
-                continue;
+                if (specificIds && specificIds.length > 0) {
+                    // 指定 ID 模式：覆盖更新
+                    await sheetsService.updateActivityData(activityMetrics);
+                    console.log(`[${i + 1}/${activities.length}] 🔄 已更新: ${activity.activityName} (${activityId})`);
+                    migratedCount++;
+                } else {
+                    // 范围模式：跳过
+                    console.log(`[${i + 1}/${activities.length}] ⏭️ 跳过（已存在）: ${activity.activityName} (${activityId})`);
+                    skippedCount++;
+                    continue;
+                }
+            } else {
+                await sheetsService.appendActivityData(activityMetrics);
+                console.log(`[${i + 1}/${activities.length}] ✅ 已迁移: ${activity.activityName} (${activityId})`);
+                migratedCount++;
             }
-
-            const activityMetrics = mapActivityFromGarmin(activity);
-            await sheetsService.appendActivityData(activityMetrics);
-            console.log(`[${i + 1}/${activities.length}] ✅ 已迁移: ${activity.activityName} (${activityId})`);
-            migratedCount++;
 
             await new Promise(resolve => setTimeout(resolve, 500));
         } catch (e) {
