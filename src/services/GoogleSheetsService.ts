@@ -194,11 +194,12 @@ export class GoogleSheetsService {
             'Avg_Temp',
             'Gear',
             'VO2_Max',
+            'Avg_Respiration',
         ];
 
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A1:AB1',
+            range: 'Activities_Log!A1:AE1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [headers] },
         });
@@ -296,6 +297,7 @@ export class GoogleSheetsService {
                 metrics.avgTemp ?? '',
                 metrics.gear ?? '',
                 metrics.vo2Max ?? '',
+                metrics.avgRespiration ?? '',
             ]];
 
             // Find the insert position: first row where activityId < newActivityId (descending order)
@@ -328,7 +330,7 @@ export class GoogleSheetsService {
             });
 
             // Write the data to the inserted row
-            const range = `Activities_Log!A${insertIndex + 1}:AB${insertIndex + 1}`;
+            const range = `Activities_Log!A${insertIndex + 1}:AE${insertIndex + 1}`;
             await this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.spreadsheetId,
                 range: range,
@@ -536,7 +538,9 @@ export class GoogleSheetsService {
             metrics.maxCadence ?? '',
             metrics.avgPower ?? '',
             metrics.avgVerticalOscillation ?? '',
+            metrics.avgVerticalRatio ?? '',
             metrics.avgGroundContactTime ?? '',
+            metrics.avgGroundContactBalance ?? '',
             metrics.avgStrideLength ?? '',
             metrics.totalAscent ?? '',
             metrics.calories ?? '',
@@ -548,9 +552,10 @@ export class GoogleSheetsService {
             metrics.avgTemp ?? '',
             metrics.gear ?? '',
             metrics.vo2Max ?? '',
+            metrics.avgRespiration ?? '',
         ]];
 
-        const range = `Activities_Log!A${rowNum}:AB${rowNum}`;
+        const range = `Activities_Log!A${rowNum}:AE${rowNum}`;
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
             range: range,

@@ -66,6 +66,7 @@ export interface ActivityMetrics {
     avgTemp?: number;                      // 平均环境温度
     gear?: string;                          // 使用装备
     vo2Max?: number;                        // 最大摄氧量
+    avgRespiration?: number;                // 平均呼吸频率 (brpm)
 }
 
 // ────── Sync Result (同步结果) — 供 sync 函数返回 ──────
