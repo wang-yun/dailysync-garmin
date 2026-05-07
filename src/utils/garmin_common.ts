@@ -296,6 +296,8 @@ export const mapActivityFromGarmin = (activity: Record<string, any>): ActivityMe
         vO2MaxValue,
         locationName,
         averageRespirationRate = activity.averageRespirationRate ?? activity.avgRespirationRate ?? undefined,
+        minRespirationRate = activity.minRespirationRate ?? activity.minRespiratoryRate ?? undefined,
+        maxRespirationRate = activity.maxRespirationRate ?? activity.maxRespiratoryRate ?? undefined,
     } = activity;
 
     // avgPace 存储为 mm:ss 文本格式（如 6:28），而非小数（如 6.46）
@@ -335,5 +337,7 @@ export const mapActivityFromGarmin = (activity: Record<string, any>): ActivityMe
         gear: undefined,
         vo2Max: vO2MaxValue,
         avgRespiration: averageRespirationRate,
+        minRespiration: minRespirationRate,
+        maxRespiration: maxRespirationRate,
     };
 };

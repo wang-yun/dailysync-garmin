@@ -195,11 +195,13 @@ export class GoogleSheetsService {
             'Gear',
             'VO2_Max',
             'Avg_Respiration',
+            'Min_Respiration',
+            'Max_Respiration',
         ];
 
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
-            range: 'Activities_Log!A1:AE1',
+            range: 'Activities_Log!A1:AG1',
             valueInputOption: 'USER_ENTERED',
             requestBody: { values: [headers] },
         });
@@ -298,6 +300,8 @@ export class GoogleSheetsService {
                 metrics.gear ?? '',
                 metrics.vo2Max ?? '',
                 metrics.avgRespiration ?? '',
+                metrics.minRespiration ?? '',
+                metrics.maxRespiration ?? '',
             ]];
 
             // Find the insert position: first row where activityId < newActivityId (descending order)
@@ -330,7 +334,7 @@ export class GoogleSheetsService {
             });
 
             // Write the data to the inserted row
-            const range = `Activities_Log!A${insertIndex + 1}:AE${insertIndex + 1}`;
+            const range = `Activities_Log!A${insertIndex + 1}:AG${insertIndex + 1}`;
             await this.sheets.spreadsheets.values.update({
                 spreadsheetId: this.spreadsheetId,
                 range: range,
@@ -553,9 +557,11 @@ export class GoogleSheetsService {
             metrics.gear ?? '',
             metrics.vo2Max ?? '',
             metrics.avgRespiration ?? '',
+            metrics.minRespiration ?? '',
+            metrics.maxRespiration ?? '',
         ]];
 
-        const range = `Activities_Log!A${rowNum}:AE${rowNum}`;
+        const range = `Activities_Log!A${rowNum}:AG${rowNum}`;
         await this.sheets.spreadsheets.values.update({
             spreadsheetId: this.spreadsheetId,
             range: range,

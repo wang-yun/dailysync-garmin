@@ -67,6 +67,8 @@ export interface ActivityMetrics {
     gear?: string;                          // 使用装备
     vo2Max?: number;                        // 最大摄氧量
     avgRespiration?: number;                // 平均呼吸频率 (brpm)
+    minRespiration?: number;                // 最低呼吸频率 (brpm)
+    maxRespiration?: number;                // 最高呼吸频率 (brpm)
 }
 
 // ────── Sync Result (同步结果) — 供 sync 函数返回 ──────

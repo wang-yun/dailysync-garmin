@@ -51,7 +51,7 @@
 | V | `Floors_Climbed` | 数字 | 爬楼层数 |
 | W | `Training_Readiness` | 数字 | 佳明训练准备程度分数 |
 
-#### Activities_Log 工作表（31 列）
+#### Activities_Log 工作表（33 列）
 | # | 字段 | 类型 | 说明 |
 |---|------|------|------|
 | A | `Activity_ID` | 文本 | 佳明原始活动 ID |
@@ -85,6 +85,8 @@
 | AC | `Gear` | 文本 | 使用装备 |
 | AD | `VO2_Max` | 数字 | 最大摄氧量 |
 | AE | `Avg_Respiration` | 数字 | 平均呼吸频率（brpm） |
+| AF | `Min_Respiration` | 数字 | 最低呼吸频率（brpm） |
+| AG | `Max_Respiration` | 数字 | 最高呼吸频率（brpm） |
 
 ### 4. 飞书通知
 同步完成后可发送飞书机器人通知，包含：

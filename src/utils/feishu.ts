@@ -104,8 +104,10 @@ export const sendFeishuNotification = async (result: FeishuNotificationData): Pr
                 const aerobic = act.aerobicTe ? ` 有氧${act.aerobicTe}` : '';
                 const anaerobic = act.anaerobicTe ? ` 无氧${act.anaerobicTe}` : '';
                 const respiration = act.avgRespiration ? ` 呼吸${act.avgRespiration}` : '';
+                const minRespiration = act.minRespiration ? ` 最低呼吸${act.minRespiration}` : '';
+                const maxRespiration = act.maxRespiration ? ` 最高呼吸${act.maxRespiration}` : '';
                 const load = act.trainingLoad ? ` 负荷${act.trainingLoad}` : '';
-                message += `• ${act.type} ${act.startTime}${dist}${pace}${hr}${maxHr}${cadence}${power}${ascent}${cal}${vo2}${respiration}${aerobic}${anaerobic}${load}\n`;
+                message += `• ${act.type} ${act.startTime}${dist}${pace}${hr}${maxHr}${cadence}${power}${ascent}${cal}${vo2}${respiration}${minRespiration}${maxRespiration}${aerobic}${anaerobic}${load}\n`;
             }
             if (activityData.skipped > 0) {
                 message += `跳过 ${activityData.skipped} 条（已存在）\n`;
