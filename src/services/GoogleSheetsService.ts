@@ -53,7 +53,9 @@ export interface ActivityMetrics {
     maxCadence?: number;            // 最大步频
     avgPower?: number;             // 平均功率 (W)
     avgVerticalOscillation?: number; // 垂直振幅 (cm)
+    avgVerticalRatio?: number;       // 垂直振幅比 (%)
     avgGroundContactTime?: number;   // 触地时间 (ms)
+    avgGroundContactBalance?: number;// 触地平衡 (%)
     avgStrideLength?: number;       // 步幅 (cm)
     totalAscent?: number;           // 累计爬升 (m)
     calories?: number;             // 消耗卡路里
@@ -237,7 +239,9 @@ export class GoogleSheetsService {
             'Max_Cadence',
             'Avg_Power',
             'Avg_Vertical_Oscillation',
+            'Avg_Vertical_Ratio',
             'Avg_Ground_Contact_Time',
+            'Avg_Ground_Contact_Balance',
             'Avg_Stride_Length',
             'Total_Ascent',
             'Calories',
@@ -337,7 +341,9 @@ export class GoogleSheetsService {
                 metrics.maxCadence ?? '',
                 metrics.avgPower ?? '',
                 metrics.avgVerticalOscillation ?? '',
+                metrics.avgVerticalRatio ?? '',
                 metrics.avgGroundContactTime ?? '',
+                metrics.avgGroundContactBalance ?? '',
                 metrics.avgStrideLength ?? '',
                 metrics.totalAscent ?? '',
                 metrics.calories ?? '',

@@ -285,7 +285,9 @@ export const mapActivityFromGarmin = (activity: Record<string, any>): ActivityMe
         maxRunningCadenceInStepsPerMinute,
         averagePower = activity.averagePower ?? undefined,
         avgVerticalOscillation = activity.avgVerticalOscillation ?? undefined,
+        avgVerticalRatio = activity.avgVerticalRatio ?? undefined,
         avgGroundContactTime = activity.avgGroundContactTime ?? undefined,
+        avgGroundContactBalance = activity.avgGroundContactBalance ?? undefined,
         avgStrideLength = activity.avgStrideLength ?? undefined,
         elevationGain,
         aerobicTrainingEffect,
@@ -298,13 +300,9 @@ export const mapActivityFromGarmin = (activity: Record<string, any>): ActivityMe
     } = activity;
 
     // avgPace 存储为 mm:ss 文本格式（如 6:28），而非小数（如 6.46）
-<<<<<<< HEAD
     // 如果 averageSpeed 缺失（Garmin CN API 的 getActivities 不返回此字段），则用 distance/duration 推算
     const speedForPace = averageSpeed ?? (distance && duration ? distance / duration : undefined);
     const avgPace = averagePaceText || (speedForPace ? `${Math.floor(1 / (speedForPace / 1000 * 60))}:${((1 / (speedForPace / 1000 * 60)) % 1 * 60).toFixed(0).padStart(2, '0')}` : undefined);
-=======
-    const avgPace = averagePaceText;
->>>>>>> 7ce3c50 (fix: 配速字段改为分秒格式，新增迁移脚本修正历史数据)
 
     return {
         activityId: String(activityId),
@@ -323,7 +321,9 @@ export const mapActivityFromGarmin = (activity: Record<string, any>): ActivityMe
         maxCadence: maxRunningCadenceInStepsPerMinute,
         avgPower: averagePower,
         avgVerticalOscillation,
+        avgVerticalRatio,
         avgGroundContactTime,
+        avgGroundContactBalance,
         avgStrideLength,
         totalAscent: elevationGain,
         calories,
