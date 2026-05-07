@@ -3,7 +3,6 @@ import { BARK_KEY_DEFAULT } from './constant';
 import { getGaminCNClient } from './utils/garmin_cn';
 import { getGarminWellnessData, mapActivityFromGarmin } from './utils/garmin_common';
 import { GoogleSheetsService } from './services/GoogleSheetsService';
-import { number2capital } from './utils/number_tricks';
 
 const axios = require('axios');
 const core = require('@actions/core');
@@ -11,8 +10,18 @@ const core = require('@actions/core');
 const BARK_KEY = process.env.BARK_KEY ?? BARK_KEY_DEFAULT;
 const MIGRATE_NUM = parseInt(process.env.GARMIN_MIGRATE_NUM ?? '100', 10);
 const MIGRATE_START = parseInt(process.env.GARMIN_MIGRATE_START ?? '0', 10);
+const WELLNESS_DAYS_TO_MIGRATE = parseInt(process.env.WELLNESS_DAYS_TO_MIGRATE ?? '30', 10);
 
-async function migrateGarminCNToSheets() {
+export interface MigrateCnToSheetsResult {
+    activitiesMigrated: number;
+    activitiesSkipped: number;
+    wellnessMigrated: number;
+}
+
+/**
+ * 历史迁移：中国区活动 + 健康数据 → Google Sheets
+ */
+export async function runMigrateCnToSheets(): Promise<MigrateCnToSheetsResult> {
     console.log('=== Garmin CN -> Google Sheets Migration ===\n');
     console.log(`Migration config: start=${MIGRATE_START}, count=${MIGRATE_NUM}\n`);
 
@@ -62,10 +71,9 @@ async function migrateGarminCNToSheets() {
     const today = new Date();
     let wellnessMigrated = 0;
 
-    const daysToMigrate = parseInt(process.env.WELLNESS_DAYS_TO_MIGRATE ?? '30', 10);
-    console.log(`Migrating wellness data for the last ${daysToMigrate} days...\n`);
+    console.log(`Migrating wellness data for the last ${WELLNESS_DAYS_TO_MIGRATE} days...\n`);
 
-    for (let d = 0; d < daysToMigrate; d++) {
+    for (let d = 0; d < WELLNESS_DAYS_TO_MIGRATE; d++) {
         const date = new Date(today);
         date.setDate(date.getDate() - d);
         const dateString = date.toISOString().split('T')[0];
@@ -73,17 +81,17 @@ async function migrateGarminCNToSheets() {
         try {
             const hasExistingWellness = await sheetsService.hasWellnessDataForDate(dateString);
             if (hasExistingWellness) {
-                console.log(`[${d + 1}/${daysToMigrate}] Skipped (exists): ${dateString}`);
+                console.log(`[${d + 1}/${WELLNESS_DAYS_TO_MIGRATE}] Skipped (exists): ${dateString}`);
                 continue;
             }
 
             const wellnessData = await getGarminWellnessData(clientCN, date);
             if (Object.keys(wellnessData).length > 1) {
                 await sheetsService.appendData(wellnessData);
-                console.log(`[${d + 1}/${daysToMigrate}] Migrated wellness: ${dateString}`);
+                console.log(`[${d + 1}/${WELLNESS_DAYS_TO_MIGRATE}] Migrated wellness: ${dateString}`);
                 wellnessMigrated++;
             } else {
-                console.log(`[${d + 1}/${daysToMigrate}] No wellness data: ${dateString}`);
+                console.log(`[${d + 1}/${WELLNESS_DAYS_TO_MIGRATE}] No wellness data: ${dateString}`);
             }
 
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -92,23 +100,26 @@ async function migrateGarminCNToSheets() {
         }
     }
 
-    console.log(`\n=== Wellness Migration Summary ===`);
-    console.log(`Days attempted: ${daysToMigrate}`);
-    console.log(`Migrated: ${wellnessMigrated}\n`);
-
-    console.log('=== Migration Complete ===');
+    console.log(`\n=== Migration Complete ===`);
     console.log(`Activities: ${migratedCount} migrated, ${skippedCount} skipped`);
     console.log(`Wellness: ${wellnessMigrated} migrated`);
+
+    return { activitiesMigrated: migratedCount, activitiesSkipped: skippedCount, wellnessMigrated };
 }
 
-try {
-    migrateGarminCNToSheets();
-} catch (e) {
-    console.error('Migration failed:', e);
-    if (BARK_KEY) {
-        axios.get(
-            `https://api.day.app/${BARK_KEY}/Garmin CN -> Google Sheets 迁移失败了/${e.message}`);
-    }
-    core.setFailed(e.message);
-    throw new Error(e);
+// 直接运行时自执行
+const isDirectRun = require.main === module || process.argv[1]?.endsWith('migrate_garmin_cn_to_sheets.ts');
+if (isDirectRun) {
+    (async () => {
+        try {
+            await runMigrateCnToSheets();
+        } catch (e: any) {
+            console.error('Migration failed:', e);
+            if (BARK_KEY) {
+                axios.get(`https://api.day.app/${BARK_KEY}/Garmin CN -> Google Sheets 迁移失败了/${e.message}`);
+            }
+            core.setFailed(e.message);
+            process.exit(1);
+        }
+    })();
 }

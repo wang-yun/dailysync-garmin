@@ -10,7 +10,16 @@ const core = require('@actions/core');
 const BARK_KEY = process.env.BARK_KEY ?? BARK_KEY_DEFAULT;
 const WELLNESS_DAYS_TO_MIGRATE = parseInt(process.env.WELLNESS_DAYS_TO_MIGRATE ?? '365', 10);
 
-async function migrateWellnessToSheets() {
+export interface MigrateWellnessResult {
+    migrated: number;
+    skipped: number;
+    errors: number;
+}
+
+/**
+ * 历史迁移：中国区健康数据 → Google Sheets
+ */
+export async function runMigrateWellness(): Promise<MigrateWellnessResult> {
     console.log('=== Garmin CN Wellness -> Google Sheets Migration ===\n');
     console.log(`Migration config: days=${WELLNESS_DAYS_TO_MIGRATE}\n`);
 
@@ -60,16 +69,23 @@ async function migrateWellnessToSheets() {
     console.log(`Migrated: ${migratedCount}`);
     console.log(`Skipped (already exists): ${skippedCount}`);
     console.log(`Errors: ${errorCount}`);
+
+    return { migrated: migratedCount, skipped: skippedCount, errors: errorCount };
 }
 
-try {
-    migrateWellnessToSheets();
-} catch (e) {
-    console.error('Migration failed:', e);
-    if (BARK_KEY) {
-        axios.get(
-            `https://api.day.app/${BARK_KEY}/Wellness -> Google Sheets 迁移失败了/${e.message}`);
-    }
-    core.setFailed(e.message);
-    throw new Error(e);
+// 直接运行时自执行
+const isDirectRun = require.main === module || process.argv[1]?.endsWith('migrate_wellness_to_sheets.ts');
+if (isDirectRun) {
+    (async () => {
+        try {
+            await runMigrateWellness();
+        } catch (e: any) {
+            console.error('Migration failed:', e);
+            if (BARK_KEY) {
+                axios.get(`https://api.day.app/${BARK_KEY}/Wellness -> Google Sheets 迁移失败了/${e.message}`);
+            }
+            core.setFailed(e.message);
+            process.exit(1);
+        }
+    })();
 }
