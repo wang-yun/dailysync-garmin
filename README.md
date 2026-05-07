@@ -255,7 +255,7 @@ npx tsx src/cli.ts <command>
 | `sync:global-to-cn` | `sync_global` | 反向同步：国际区 → 中国区 |
 | `migrate:cn-to-global` | `migrate_garmin_cn_to_global` | 历史迁移：中国区活动 → 国际区 |
 | `migrate:global-to-cn` | `migrate_garmin_global_to_cn` | 历史迁移：国际区活动 → 中国区 |
-| `migrate:activity-to-sheets` | `migrate:cn-to-sheets`, `migrate_garmin_cn_to_sheets` | 历史迁移：中国区活动 → Google Sheets（支持指定活动 ID） |
+| `migrate:activity-to-sheets` | `migrate:cn-to-sheets`, `migrate_garmin_cn_to_sheets` | 历史迁移：中国区活动 → Google Sheets（支持 --activity-id 和 --activity-file） |
 | `migrate:wellness-to-sheets` | `migrate:wellness`, `migrate_wellness` | 历史迁移：中国区健康 → Google Sheets（支持指定日期/天数） |
 | `rq` | — | RQ 跑力数据采集 → Google Sheets |
 | `test:sheets` | — | 测试 Google Sheets 连接 |
@@ -275,6 +275,9 @@ npm run migrate:activity-to-sheets
 
 # 指定活动 ID 迁移到 Google Sheets
 npx tsx src/cli.ts migrate:activity-to-sheets --activity-id 12345678,23456789
+
+# 从文件读取活动 ID 列表（每行一个 ID）
+npx tsx src/cli.ts migrate:activity-to-sheets --activity-file ids.txt
 
 # 迁移健康数据到 Google Sheets（默认最近 365 天）
 npm run migrate:wellness-to-sheets
@@ -296,6 +299,7 @@ npm run test:sheets
 | 参数 | 适用命令 | 说明 |
 |------|----------|------|
 | `--activity-id <id>` | `migrate:activity-to-sheets` | 指定活动 ID，逗号分隔多个。如 `--activity-id 123456,789012` |
+| `--activity-file <file>` | `migrate:activity-to-sheets` | 从文件读取活动 ID（每行一个）。可与 --activity-id 叠加 |
 | `--date <YYYY-MM-DD>` | `migrate:wellness-to-sheets` | 指定日期，只同步那一天。如 `--date 2026-04-04` |
 | `--days <N>` | `migrate:wellness-to-sheets` | 往前追溯天数。如 `--days 7` |
 

@@ -66,13 +66,23 @@ const COMMANDS: Record<string, { load: (args: Record<string, string>) => Promise
     'migrate:activity-to-sheets': {
         load: async (args) => {
             const mod = await import('./migrate_garmin_cn_to_sheets');
-            const activityIds = args['activity-id'] ? args['activity-id'].split(',').map(s => s.trim()).filter(Boolean) : undefined;
+            let activityIds: string[] | undefined;
+            if (args['activity-id']) {
+                activityIds = args['activity-id'].split(',').map(s => s.trim()).filter(Boolean);
+            }
+            if (args['activity-file']) {
+                const fs = await import('fs');
+                const content = fs.readFileSync(args['activity-file'], 'utf-8');
+                const fileIds = content.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
+                activityIds = [...(activityIds ?? []), ...fileIds];
+                console.log(`从文件读取 ${fileIds.length} 个活动 ID`);
+            }
             if (activityIds?.length) {
-                console.log(`指定的活动 ID: ${activityIds.join(', ')}`);
+                console.log(`共 ${activityIds.length} 个指定活动 ID`);
             }
             return () => mod.runMigrateCnToSheets(activityIds ? { activityIds } : undefined);
         },
-        desc: '中国区活动 → Google Sheets（--activity-id 123,456 指定活动ID）',
+        desc: '中国区活动 → Google Sheets（--activity-id 123,456 指定ID，--activity-file <file> 从文件读取ID）',
     },
     'migrate:wellness-to-sheets': {
         load: async (args) => {
