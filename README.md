@@ -232,8 +232,8 @@ npx tsx src/cli.ts <command>
 | `sync:global-to-cn` | `sync_global` | 反向同步：国际区 → 中国区 |
 | `migrate:cn-to-global` | `migrate_garmin_cn_to_global` | 历史迁移：中国区活动 → 国际区 |
 | `migrate:global-to-cn` | `migrate_garmin_global_to_cn` | 历史迁移：国际区活动 → 中国区 |
-| `migrate:cn-to-sheets` | `migrate_garmin_cn_to_sheets` | 历史迁移：中国区活动 → Google Sheets（支持指定活动 ID） |
-| `migrate:wellness` | `migrate_wellness` | 历史迁移：中国区健康 → Google Sheets（支持指定日期/天数） |
+| `migrate:activity-to-sheets` | `migrate:cn-to-sheets`, `migrate_garmin_cn_to_sheets` | 历史迁移：中国区活动 → Google Sheets（支持指定活动 ID） |
+| `migrate:wellness-to-sheets` | `migrate:wellness`, `migrate_wellness` | 历史迁移：中国区健康 → Google Sheets（支持指定日期/天数） |
 | `rq` | — | RQ 跑力数据采集 → Google Sheets |
 | `test:sheets` | — | 测试 Google Sheets 连接 |
 | `help` | — | 显示帮助信息 |
@@ -248,19 +248,19 @@ npm run sync
 npm run sync:global-to-cn
 
 # 迁移活动数据到 Google Sheets（最近 100 条）
-npm run migrate:cn-to-sheets
+npm run migrate:activity-to-sheets
 
 # 指定活动 ID 迁移到 Google Sheets
-npx tsx src/cli.ts migrate:cn-to-sheets --activity-id 12345678,23456789
+npx tsx src/cli.ts migrate:activity-to-sheets --activity-id 12345678,23456789
 
 # 迁移健康数据到 Google Sheets（默认最近 365 天）
-npm run migrate:wellness
+npm run migrate:wellness-to-sheets
 
 # 指定日期同步健康数据
-npx tsx src/cli.ts migrate:wellness --date 2026-04-04
+npx tsx src/cli.ts migrate:wellness-to-sheets --date 2026-04-04
 
 # 指定天数同步健康数据
-npx tsx src/cli.ts migrate:wellness --days 7
+npx tsx src/cli.ts migrate:wellness-to-sheets --days 7
 
 # 测试 Google Sheets 连接
 npm run test:sheets
@@ -272,9 +272,9 @@ npm run test:sheets
 
 | 参数 | 适用命令 | 说明 |
 |------|----------|------|
-| `--activity-id <id>` | `migrate:cn-to-sheets` | 指定活动 ID，逗号分隔多个。如 `--activity-id 123456,789012` |
-| `--date <YYYY-MM-DD>` | `migrate:wellness` | 指定日期，只同步那一天。如 `--date 2026-04-04` |
-| `--days <N>` | `migrate:wellness` | 往前追溯天数。如 `--days 7` |
+| `--activity-id <id>` | `migrate:activity-to-sheets` | 指定活动 ID，逗号分隔多个。如 `--activity-id 123456,789012` |
+| `--date <YYYY-MM-DD>` | `migrate:wellness-to-sheets` | 指定日期，只同步那一天。如 `--date 2026-04-04` |
+| `--days <N>` | `migrate:wellness-to-sheets` | 往前追溯天数。如 `--days 7` |
 
 #### 环境变量
 
@@ -282,7 +282,7 @@ npm run test:sheets
 |----------|--------|----------|------|
 | `GARMIN_MIGRATE_NUM` | `100` | 所有 migrate 命令 | 每次处理的记录数 |
 | `GARMIN_MIGRATE_START` | `0` | 所有 migrate 命令 | 从第几条记录开始 |
-| `WELLNESS_DAYS_TO_MIGRATE` | `365` | `migrate:wellness` | 往前追溯的天数 |
+| `WELLNESS_DAYS_TO_MIGRATE` | `365` | `migrate:wellness-to-sheets` | 往前追溯的天数 |
 | `GOOGLE_SHEETS_ENABLED` | `false` | `sync` | 是否启用 Google Sheets 写入 |
 | `GARMIN_SYNC_NUM` | `10` | `sync` | 每次同步检查的最大活动数 |
 | `BARK_KEY` | — | 所有命令 | Bark iOS 推送 key（留空禁用） |

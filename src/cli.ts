@@ -10,8 +10,8 @@
  *   sync global-to-cn           反向同步：国际区 → 中国区
  *   migrate cn-to-global        历史迁移：中国区活动 → 国际区
  *   migrate global-to-cn        历史迁移：国际区活动 → 中国区
- *   migrate cn-to-sheets        中国区活动 → Google Sheets
- *   migrate wellness            中国区健康 → Google Sheets
+ *   migrate activity-to-sheets   中国区活动 → Google Sheets
+ *   migrate wellness-to-sheets   中国区健康 → Google Sheets
  *   rq                          RQ 跑力数据采集 → Google Sheets
  *   test sheets                 测试 Google Sheets 连接
  *   help                        显示此帮助信息
@@ -63,7 +63,7 @@ const COMMANDS: Record<string, { load: (args: Record<string, string>) => Promise
         load: async () => (await import('./migrate_garmin_global_to_cn')).runMigrateGlobalToCn,
         desc: '国际区活动 → 中国区',
     },
-    'migrate:cn-to-sheets': {
+    'migrate:activity-to-sheets': {
         load: async (args) => {
             const mod = await import('./migrate_garmin_cn_to_sheets');
             const activityIds = args['activity-id'] ? args['activity-id'].split(',').map(s => s.trim()).filter(Boolean) : undefined;
@@ -74,7 +74,7 @@ const COMMANDS: Record<string, { load: (args: Record<string, string>) => Promise
         },
         desc: '中国区活动 → Google Sheets（--activity-id 123,456 指定活动ID）',
     },
-    'migrate:wellness': {
+    'migrate:wellness-to-sheets': {
         load: async (args) => {
             const mod = await import('./migrate_wellness_to_sheets');
             const date = args['date'] || undefined;
@@ -100,8 +100,10 @@ const COMMANDS: Record<string, { load: (args: Record<string, string>) => Promise
     },
 };
 
-// 别名
+// 别名（向后兼容）
 COMMANDS['sync:cn-to-global'] = COMMANDS['sync'];
+COMMANDS['migrate:cn-to-sheets'] = COMMANDS['migrate:activity-to-sheets'];
+COMMANDS['migrate:wellness'] = COMMANDS['migrate:wellness-to-sheets'];
 
 const HELP_TEXT = `
 用法: tsx src/cli.ts <command> [options]
@@ -112,8 +114,8 @@ const HELP_TEXT = `
   migrate cn-to-global        ${COMMANDS['migrate:cn-to-global'].desc}
   migrate global-to-cn        ${COMMANDS['migrate:global-to-cn'].desc}
 
-  migrate cn-to-sheets        ${COMMANDS['migrate:cn-to-sheets'].desc}
-  migrate wellness            ${COMMANDS['migrate:wellness'].desc}
+  migrate activity-to-sheets   ${COMMANDS['migrate:activity-to-sheets'].desc}
+  migrate wellness-to-sheets   ${COMMANDS['migrate:wellness-to-sheets'].desc}
 
   rq                          ${COMMANDS['rq'].desc}
   test sheets                 ${COMMANDS['test:sheets'].desc}
