@@ -133,7 +133,7 @@ export const getGarminStatistics = async (client: GarminClientType): Promise<Rec
  * Uses garmin.cn specific wellness APIs via connectapi.garmin.cn
  */
 export const getGarminWellnessData = async (client: GarminClientType, date: Date): Promise<WellnessMetrics> => {
-    const dateString = date.toISOString().split('T')[0];
+    const dateString = date.toLocaleDateString('en-CA', { timeZone: 'Asia/Shanghai' });
 
     try {
         console.log(`Fetching wellness data for ${dateString}...`);
